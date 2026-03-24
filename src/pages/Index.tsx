@@ -89,16 +89,6 @@ function Dashboard({ user }: { user: User }) {
           onParseAttachment={notesStore.parseAttachment}
           identityName={store.activeIdentity?.name}
         />
-        <TradeReviewPanel
-          reviews={reviewStore.reviews}
-          trades={store.activeTrades}
-          identityId={store.activeIdentityId}
-          identityName={store.activeIdentity?.name}
-          loading={reviewStore.loading}
-          onAdd={reviewStore.addReview}
-          onUpdate={reviewStore.updateReview}
-          onDelete={reviewStore.deleteReview}
-        />
         <StatsBar trades={store.activeTrades} />
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
