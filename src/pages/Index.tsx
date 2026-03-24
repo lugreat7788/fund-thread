@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCloudTradeStore, calcStats } from '@/store/useCloudTradeStore';
 import { useNotesStore } from '@/store/useNotesStore';
@@ -13,12 +14,13 @@ import { TradeReviewPanel } from '@/components/TradeReviewPanel';
 import { AuthPage } from '@/components/AuthPage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, LogOut, Loader2 } from 'lucide-react';
+import { Search, LogOut, Loader2, Bot } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 
 type Filter = 'all' | 'open' | 'closed';
 
 function Dashboard({ user }: { user: User }) {
+  const navigate = useNavigate();
   const store = useCloudTradeStore(user);
   const notesStore = useNotesStore(user, store.activeIdentityId);
   const reviewStore = useReviewStore(user, store.activeIdentityId);
@@ -70,6 +72,9 @@ function Dashboard({ user }: { user: User }) {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/ai-assistant')} className="gap-1.5">
+              <Bot className="w-4 h-4" /> 策略助手
+            </Button>
             <ComparisonView identities={store.identities} trades={store.trades} />
             {store.activeIdentityId && <TradeForm identityId={store.activeIdentityId} onAdd={store.addTrade} />}
             <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => supabase.auth.signOut()}>
