@@ -25,10 +25,11 @@ export function TradeForm({ identityId, onAdd }: Props) {
     strategy: 'trend' as StrategyTag,
   });
 
-  const handleSubmit = () => {
-    console.log('handleSubmit called, form:', JSON.stringify(form));
+  const handleSubmit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!form.symbol || !form.buyPrice || !form.shares) {
-      console.log('Validation failed:', { symbol: form.symbol, buyPrice: form.buyPrice, shares: form.shares });
+      alert('请填写股票代码、买入价格和股数');
       return;
     }
     onAdd({
