@@ -273,6 +273,14 @@ function AddReviewDialog({ identityId, trades, existingLabels, onAdd, onClose }:
   }, [trades, selectedOption]);
 
   const isDuplicate = selectedPeriod && existingLabels.includes(`${periodType}:${selectedPeriod}`);
+  const hasContent = summary || lessons || goals || selectedPeriod;
+
+  const handleClose = () => {
+    if (hasContent) {
+      if (!window.confirm('已填写的内容将丢失，确定退出吗？')) return;
+    }
+    onClose();
+  };
 
   const handleSubmit = () => {
     if (!selectedOption || !summary || isDuplicate) return;
@@ -284,8 +292,8 @@ function AddReviewDialog({ identityId, trades, existingLabels, onAdd, onClose }:
   };
 
   return (
-    <Dialog open onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="sm:max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
+    <Dialog open onOpenChange={v => { if (!v) handleClose(); }}>
+      <DialogContent className="sm:max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto" onPointerDownOutside={e => { if (hasContent) e.preventDefault(); }} onEscapeKeyDown={e => { if (hasContent) e.preventDefault(); handleClose(); }}>
         <DialogHeader>
           <DialogTitle className="font-display">撰写交易复盘总结</DialogTitle>
         </DialogHeader>
