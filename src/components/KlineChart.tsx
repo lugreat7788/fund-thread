@@ -135,9 +135,9 @@ export function KlineChart({ symbol, name, buyPrice, sellPrice, events = [], onA
   );
 }
 
-function CandlestickCanvas({ data, buyPrice, sellPrice, events, onAddEvent }: {
+function CandlestickCanvas({ data, buyPrice, sellPrice, events, onAddEvent, currency = '¥' }: {
   data: KlineData[]; buyPrice: number; sellPrice?: number;
-  events: TradeEvent[]; onAddEvent?: (event: Omit<TradeEvent, 'id'>) => void;
+  events: TradeEvent[]; onAddEvent?: (event: Omit<TradeEvent, 'id'>) => void; currency?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; event: TradeEvent } | null>(null);
