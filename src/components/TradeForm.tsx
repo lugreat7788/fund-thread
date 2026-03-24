@@ -21,7 +21,7 @@ export function TradeForm({ identityId, onAdd }: Props) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     symbol: '', name: '', direction: 'long' as TradeDirection,
-    buyDate: new Date().toISOString().slice(0, 10), buyPrice: '', shares: '', buyReason: '',
+    buyDate: new Date().toISOString().slice(0, 10), buyPrice: '', shares: '100', buyReason: '',
     strategy: 'trend' as StrategyTag,
   });
 
