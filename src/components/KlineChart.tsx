@@ -43,9 +43,13 @@ const IMPACT_MARKER_COLORS: Record<number, string> = {
 export function KlineChart({ symbol, name, buyPrice, sellPrice, events = [], onAddEvent }: Props) {
   const [data, setData] = useState<KlineData[]>([]);
   const [quote, setQuote] = useState<{ price: number; changePercent: number } | null>(null);
+  const [market, setMarket] = useState<'cn' | 'us'>('cn');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [period, setPeriod] = useState('daily');
+
+  const isUS = market === 'us';
+  const currency = isUS ? '$' : '¥';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -58,6 +62,7 @@ export function KlineChart({ symbol, name, buyPrice, sellPrice, events = [], onA
       if (!res.success) throw new Error(res.error);
       setData(res.data || []);
       setQuote(res.quote || null);
+      if (res.market) setMarket(res.market);
     } catch (e: any) {
       setError(e.message || '获取数据失败');
     } finally {
@@ -97,7 +102,7 @@ export function KlineChart({ symbol, name, buyPrice, sellPrice, events = [], onA
           <span className="font-mono text-sm font-medium">{symbol} {name}</span>
           {quote && (
             <span className={`font-mono text-sm font-semibold ${quote.changePercent >= 0 ? 'text-profit' : 'text-loss'}`}>
-              ¥{quote.price.toFixed(2)}
+              {currency}{quote.price.toFixed(2)}
               <span className="ml-1 text-xs">
                 {quote.changePercent >= 0 ? '+' : ''}{quote.changePercent.toFixed(2)}%
               </span>
@@ -118,11 +123,11 @@ export function KlineChart({ symbol, name, buyPrice, sellPrice, events = [], onA
       </div>
 
       <CandlestickCanvas data={data} buyPrice={buyPrice} sellPrice={sellPrice}
-        events={events} onAddEvent={onAddEvent} />
+        events={events} onAddEvent={onAddEvent} currency={currency} />
 
       <div className="flex gap-4 text-xs text-muted-foreground font-mono">
-        <span>最高 ¥{Math.max(...data.map(d => d.high)).toFixed(2)}</span>
-        <span>最低 ¥{Math.min(...data.map(d => d.low)).toFixed(2)}</span>
+        <span>最高 {currency}{Math.max(...data.map(d => d.high)).toFixed(2)}</span>
+        <span>最低 {currency}{Math.min(...data.map(d => d.low)).toFixed(2)}</span>
         <span>数据量 {data.length}条</span>
         {events.length > 0 && <span>📍 {events.length} 个事件</span>}
       </div>
@@ -130,9 +135,9 @@ export function KlineChart({ symbol, name, buyPrice, sellPrice, events = [], onA
   );
 }
 
-function CandlestickCanvas({ data, buyPrice, sellPrice, events, onAddEvent }: {
+function CandlestickCanvas({ data, buyPrice, sellPrice, events, onAddEvent, currency = '¥' }: {
   data: KlineData[]; buyPrice: number; sellPrice?: number;
-  events: TradeEvent[]; onAddEvent?: (event: Omit<TradeEvent, 'id'>) => void;
+  events: TradeEvent[]; onAddEvent?: (event: Omit<TradeEvent, 'id'>) => void; currency?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; event: TradeEvent } | null>(null);
@@ -286,7 +291,7 @@ function CandlestickCanvas({ data, buyPrice, sellPrice, events, onAddEvent }: {
           stroke="var(--primary)" strokeWidth={1} strokeDasharray="4,3" />
         <text x={width - padding.right + 4} y={yPrice(buyPrice) + 3}
           fill="var(--primary)" fontSize={9} fontFamily="monospace" fontWeight="bold">
-          买 {buyPrice.toFixed(2)}
+          买 {currency}{buyPrice.toFixed(2)}
         </text>
 
         {/* Sell price line */}
@@ -297,7 +302,7 @@ function CandlestickCanvas({ data, buyPrice, sellPrice, events, onAddEvent }: {
               stroke="var(--accent)" strokeWidth={1} strokeDasharray="4,3" />
             <text x={width - padding.right + 4} y={yPrice(sellPrice) + 3}
               fill="var(--accent)" fontSize={9} fontFamily="monospace" fontWeight="bold">
-              卖 {sellPrice.toFixed(2)}
+              卖 {currency}{sellPrice.toFixed(2)}
             </text>
           </>
         )}
