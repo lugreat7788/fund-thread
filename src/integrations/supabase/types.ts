@@ -141,6 +141,62 @@ export type Database = {
           },
         ]
       }
+      trade_reviews: {
+        Row: {
+          created_at: string
+          goals: string
+          id: string
+          identity_id: string
+          lessons: string
+          period_end: string
+          period_label: string
+          period_start: string
+          period_type: string
+          rating: number
+          summary: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goals?: string
+          id?: string
+          identity_id: string
+          lessons?: string
+          period_end: string
+          period_label: string
+          period_start: string
+          period_type: string
+          rating?: number
+          summary?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goals?: string
+          id?: string
+          identity_id?: string
+          lessons?: string
+          period_end?: string
+          period_label?: string
+          period_start?: string
+          period_type?: string
+          rating?: number
+          summary?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_reviews_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trades: {
         Row: {
           buy_date: string
