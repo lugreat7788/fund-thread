@@ -14,7 +14,142 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      identities: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trade_events: {
+        Row: {
+          action: string | null
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          impact: number
+          title: string
+          trade_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          impact?: number
+          title: string
+          trade_id: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          impact?: number
+          title?: string
+          trade_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_events_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          buy_date: string
+          buy_price: number
+          buy_reason: string | null
+          created_at: string
+          direction: string
+          id: string
+          identity_id: string
+          name: string
+          sell_date: string | null
+          sell_price: number | null
+          sell_reason: string | null
+          shares: number
+          strategy: string
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buy_date: string
+          buy_price: number
+          buy_reason?: string | null
+          created_at?: string
+          direction: string
+          id?: string
+          identity_id: string
+          name: string
+          sell_date?: string | null
+          sell_price?: number | null
+          sell_reason?: string | null
+          shares: number
+          strategy: string
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buy_date?: string
+          buy_price?: number
+          buy_reason?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          identity_id?: string
+          name?: string
+          sell_date?: string | null
+          sell_price?: number | null
+          sell_reason?: string | null
+          shares?: number
+          strategy?: string
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
