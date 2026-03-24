@@ -302,7 +302,7 @@ function CandlestickCanvas({ data, buyPrice, sellPrice, events, onAddEvent, curr
               stroke="var(--accent)" strokeWidth={1} strokeDasharray="4,3" />
             <text x={width - padding.right + 4} y={yPrice(sellPrice) + 3}
               fill="var(--accent)" fontSize={9} fontFamily="monospace" fontWeight="bold">
-              卖 {sellPrice.toFixed(2)}
+              卖 {currency}{sellPrice.toFixed(2)}
             </text>
           </>
         )}
