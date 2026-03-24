@@ -70,8 +70,10 @@ export function TradeCard({ trade, onClose, onDelete, onAddEvent, onDeleteEvent 
 
       {/* K-line Chart */}
       {showChart && (
-        <div className="mt-3 pt-3 border-t border-border">
-          <KlineChart symbol={trade.symbol} name={trade.name} buyPrice={trade.buyPrice} sellPrice={trade.sellPrice} />
+        <div className="mt-3 pt-3 border-t border-border relative">
+          <KlineChart symbol={trade.symbol} name={trade.name} buyPrice={trade.buyPrice}
+            sellPrice={trade.sellPrice} events={trade.events}
+            onAddEvent={e => onAddEvent(trade.id, e)} />
         </div>
       )}
 
