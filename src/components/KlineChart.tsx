@@ -126,8 +126,8 @@ export function KlineChart({ symbol, name, buyPrice, sellPrice, events = [], onA
         events={events} onAddEvent={onAddEvent} currency={currency} />
 
       <div className="flex gap-4 text-xs text-muted-foreground font-mono">
-        <span>最高 ¥{Math.max(...data.map(d => d.high)).toFixed(2)}</span>
-        <span>最低 ¥{Math.min(...data.map(d => d.low)).toFixed(2)}</span>
+        <span>最高 {currency}{Math.max(...data.map(d => d.high)).toFixed(2)}</span>
+        <span>最低 {currency}{Math.min(...data.map(d => d.low)).toFixed(2)}</span>
         <span>数据量 {data.length}条</span>
         {events.length > 0 && <span>📍 {events.length} 个事件</span>}
       </div>
