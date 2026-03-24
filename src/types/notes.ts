@@ -25,4 +25,8 @@ export interface TradeNote {
   isPinned: boolean;
   createdAt: string;
   updatedAt: string;
+  attachmentUrl?: string | null;
+  attachmentType?: string | null;
+  attachmentName?: string | null;
+  aiSummary?: string | null;
 }

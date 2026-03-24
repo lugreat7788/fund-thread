@@ -83,6 +83,7 @@ function Dashboard({ user }: { user: User }) {
           onAdd={notesStore.addNote}
           onUpdate={notesStore.updateNote}
           onDelete={notesStore.deleteNote}
+          onParseAttachment={notesStore.parseAttachment}
           identityName={store.activeIdentity?.name}
         />
         <StatsBar trades={store.activeTrades} />

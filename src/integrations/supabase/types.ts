@@ -87,6 +87,10 @@ export type Database = {
       }
       trade_notes: {
         Row: {
+          ai_summary: string | null
+          attachment_name: string | null
+          attachment_type: string | null
+          attachment_url: string | null
           category: string
           content: string
           created_at: string
@@ -98,6 +102,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_summary?: string | null
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           category: string
           content: string
           created_at?: string
@@ -109,6 +117,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_summary?: string | null
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           category?: string
           content?: string
           created_at?: string
