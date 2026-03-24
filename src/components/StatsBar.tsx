@@ -1,5 +1,5 @@
 import type { Trade } from '@/types/trade';
-import { calcStats } from '@/store/useTradeStore';
+import { calcStats } from '@/store/useCloudTradeStore';
 
 export function StatsBar({ trades }: { trades: Trade[] }) {
   const { total, openCount, closedCount, totalPnL, winRate } = calcStats(trades);

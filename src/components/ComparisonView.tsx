@@ -1,5 +1,5 @@
 import type { Identity, Trade } from '@/types/trade';
-import { calcStats } from '@/store/useTradeStore';
+import { calcStats } from '@/store/useCloudTradeStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BarChart3 } from 'lucide-react';

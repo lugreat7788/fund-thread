@@ -1,6 +1,6 @@
 import type { Trade, TradeEvent } from '@/types/trade';
 import { STRATEGY_LABELS } from '@/types/trade';
-import { calcPnL } from '@/store/useTradeStore';
+import { calcPnL } from '@/store/useCloudTradeStore';
 import { ClosePositionDialog } from './ClosePositionDialog';
 import { EventForm } from './EventForm';
 import { EventTimeline } from './EventTimeline';
