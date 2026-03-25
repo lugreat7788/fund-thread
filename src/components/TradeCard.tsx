@@ -25,22 +25,22 @@ export function TradeCard({ trade, onClose, onDelete, onAddEvent, onDeleteEvent 
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            {trade.direction === 'long' ? <TrendingUp className="w-4 h-4 text-profit" /> : <TrendingDown className="w-4 h-4 text-loss" />}
+          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+            {trade.direction === 'long' ? <TrendingUp className="w-4 h-4 text-profit shrink-0" /> : <TrendingDown className="w-4 h-4 text-loss shrink-0" />}
             <span className="font-mono text-base font-medium">{trade.symbol}</span>
-            <span className="text-sm text-muted-foreground">{trade.name}</span>
-            <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+            <span className="text-sm text-muted-foreground truncate">{trade.name}</span>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground whitespace-nowrap">
               {STRATEGY_LABELS[trade.strategy]}
             </span>
             {isOpen ? (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary">持仓中</span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary whitespace-nowrap">持仓中</span>
             ) : (
-              <span className={`text-xs px-1.5 py-0.5 rounded ${isProfit ? 'bg-profit/20 text-profit' : 'bg-loss/20 text-loss'}`}>已平仓</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded whitespace-nowrap ${isProfit ? 'bg-profit/20 text-profit' : 'bg-loss/20 text-loss'}`}>已平仓</span>
             )}
           </div>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-4 text-xs text-muted-foreground font-mono">
             <span>买入 {trade.buyDate} @ ¥{trade.buyPrice.toFixed(2)} × {trade.shares}股</span>
             {!isOpen && trade.sellDate && (
               <span>卖出 {trade.sellDate} @ ¥{trade.sellPrice?.toFixed(2)}</span>

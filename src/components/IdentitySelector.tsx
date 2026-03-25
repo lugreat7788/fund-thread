@@ -29,12 +29,12 @@ export function IdentitySelector({ identities, activeId, onSelect, onAdd, onDele
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
+      <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1 overflow-x-auto max-w-full">
         {identities.map(identity => (
           <button
             key={identity.id}
             onClick={() => onSelect(identity.id)}
-            className={`px-3 py-1.5 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 ${
+            className={`px-2.5 py-1.5 rounded-md text-xs font-mono transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               identity.id === activeId ? 'bg-card shadow-sm' : 'hover:bg-card/50'
             }`}
           >

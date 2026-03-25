@@ -56,31 +56,31 @@ function Dashboard({ user }: { user: User }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-xl font-semibold tracking-tight">
+        <div className="max-w-5xl mx-auto space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="font-display text-xl font-semibold tracking-tight shrink-0">
               <span className="text-primary">Trade</span>Journal
             </h1>
-            {store.identities.length > 0 && (
-              <IdentitySelector
-                identities={store.identities}
-                activeId={store.activeIdentityId}
-                onSelect={store.setActiveIdentity}
-                onAdd={store.addIdentity}
-                onDelete={store.deleteIdentity}
-              />
-            )}
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => navigate('/ai-assistant')} className="gap-1 px-2 sm:px-3">
+                <Bot className="w-4 h-4" /> <span className="hidden sm:inline">策略助手</span>
+              </Button>
+              <ComparisonView identities={store.identities} trades={store.trades} />
+              {store.activeIdentityId && <TradeForm identityId={store.activeIdentityId} onAdd={store.addTrade} />}
+              <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => supabase.auth.signOut()}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/ai-assistant')} className="gap-1.5">
-              <Bot className="w-4 h-4" /> 策略助手
-            </Button>
-            <ComparisonView identities={store.identities} trades={store.trades} />
-            {store.activeIdentityId && <TradeForm identityId={store.activeIdentityId} onAdd={store.addTrade} />}
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => supabase.auth.signOut()}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+          {store.identities.length > 0 && (
+            <IdentitySelector
+              identities={store.identities}
+              activeId={store.activeIdentityId}
+              onSelect={store.setActiveIdentity}
+              onAdd={store.addIdentity}
+              onDelete={store.deleteIdentity}
+            />
+          )}
         </div>
       </header>
 
