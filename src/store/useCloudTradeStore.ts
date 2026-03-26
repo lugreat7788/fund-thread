@@ -157,3 +157,27 @@ export function calcStats(trades: Trade[]) {
   const winRate = closedTrades.length > 0 ? (wins / closedTrades.length) * 100 : 0;
   return { total, openCount: openTrades.length, closedCount: closedTrades.length, totalPnL, winRate };
 }
+
+export function mergePositions(trades: Trade[]): MergedPosition[] {
+  const openTrades = trades.filter(t => !t.sellPrice);
+  const grouped: Record<string, Trade[]> = {};
+  openTrades.forEach(t => {
+    const key = `${t.symbol}_${t.direction}`;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(t);
+  });
+  return Object.values(grouped).map(group => {
+    const totalShares = group.reduce((s, t) => s + t.shares, 0);
+    const totalCost = group.reduce((s, t) => s + t.buyPrice * t.shares, 0);
+    return {
+      symbol: group[0].symbol,
+      name: group[0].name,
+      currency: group[0].currency,
+      direction: group[0].direction,
+      totalShares,
+      avgPrice: totalCost / totalShares,
+      totalCost,
+      trades: group,
+    };
+  });
+}
