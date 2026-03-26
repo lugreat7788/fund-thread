@@ -22,6 +22,7 @@ export function TradeCard({ trade, onClose, onDelete, onAddEvent, onDeleteEvent 
   const [showChart, setShowChart] = useState(false);
   const { amount, percent, isOpen } = calcPnL(trade);
   const isProfit = amount >= 0;
+  const cs = CURRENCY_SYMBOLS[trade.currency] || '¥';
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 hover:border-primary/30 transition-colors">
