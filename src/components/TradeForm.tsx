@@ -6,14 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
-import type { TradeDirection, StrategyTag } from '@/types/trade';
-import { STRATEGY_LABELS } from '@/types/trade';
+import type { TradeDirection, StrategyTag, Currency } from '@/types/trade';
+import { STRATEGY_LABELS, CURRENCY_LABELS } from '@/types/trade';
 
 interface Props {
   identityId: string;
   onAdd: (trade: {
     identityId: string; symbol: string; name: string; direction: TradeDirection;
     buyDate: string; buyPrice: number; shares: number; buyReason: string; strategy: StrategyTag;
+    currency: Currency;
   }) => void;
 }
 
@@ -22,7 +23,7 @@ export function TradeForm({ identityId, onAdd }: Props) {
   const [form, setForm] = useState({
     symbol: '', name: '', direction: 'long' as TradeDirection,
     buyDate: new Date().toISOString().slice(0, 10), buyPrice: '', shares: '100', buyReason: '',
-    strategy: 'trend' as StrategyTag,
+    strategy: 'trend' as StrategyTag, currency: 'CNY' as Currency,
   });
 
   const handleSubmit = (e: React.MouseEvent) => {
@@ -35,9 +36,9 @@ export function TradeForm({ identityId, onAdd }: Props) {
     onAdd({
       identityId, symbol: form.symbol, name: form.name, direction: form.direction,
       buyDate: form.buyDate, buyPrice: Number(form.buyPrice), shares: Number(form.shares),
-      buyReason: form.buyReason, strategy: form.strategy,
+      buyReason: form.buyReason, strategy: form.strategy, currency: form.currency,
     });
-    setForm({ symbol: '', name: '', direction: 'long', buyDate: new Date().toISOString().slice(0, 10), buyPrice: '', shares: '100', buyReason: '', strategy: 'trend' });
+    setForm({ symbol: '', name: '', direction: 'long', buyDate: new Date().toISOString().slice(0, 10), buyPrice: '', shares: '100', buyReason: '', strategy: 'trend', currency: 'CNY' });
     setOpen(false);
   };
 
@@ -50,10 +51,10 @@ export function TradeForm({ identityId, onAdd }: Props) {
         <DialogHeader><DialogTitle className="font-display text-xl">新建交易记录</DialogTitle></DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>股票代码</Label><Input value={form.symbol} onChange={e => setForm(f => ({ ...f, symbol: e.target.value }))} placeholder="600519" /></div>
-            <div><Label>股票名称</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="贵州茅台" /></div>
+            <div><Label>股票代码</Label><Input value={form.symbol} onChange={e => setForm(f => ({ ...f, symbol: e.target.value }))} placeholder="600519 / AAPL" /></div>
+            <div><Label>股票名称</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="贵州茅台 / Apple" /></div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>方向</Label>
               <Select value={form.direction} onValueChange={v => setForm(f => ({ ...f, direction: v as TradeDirection }))}>
@@ -66,6 +67,13 @@ export function TradeForm({ identityId, onAdd }: Props) {
               <Select value={form.strategy} onValueChange={v => setForm(f => ({ ...f, strategy: v as StrategyTag }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(STRATEGY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>货币</Label>
+              <Select value={form.currency} onValueChange={v => setForm(f => ({ ...f, currency: v as Currency }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(CURRENCY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
