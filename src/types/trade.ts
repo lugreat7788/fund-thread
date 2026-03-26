@@ -1,6 +1,15 @@
 export type TradeDirection = 'long' | 'short';
 export type TradeStatus = 'open' | 'closed';
 export type StrategyTag = 'trend' | 'value' | 'event_driven' | 'arbitrage' | 'speculation' | 'defensive';
+export type Currency = 'CNY' | 'USD' | 'HKD' | 'SEK' | 'EUR' | 'GBP' | 'JPY';
+
+export const CURRENCY_LABELS: Record<Currency, string> = {
+  CNY: '¥ 人民币', USD: '$ 美元', HKD: 'HK$ 港币', SEK: 'kr 瑞典克朗',
+  EUR: '€ 欧元', GBP: '£ 英镑', JPY: '¥ 日元',
+};
+export const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  CNY: '¥', USD: '$', HKD: 'HK$', SEK: 'kr', EUR: '€', GBP: '£', JPY: '¥',
+};
 
 export const STRATEGY_LABELS: Record<StrategyTag, string> = {
   trend: '趋势',
