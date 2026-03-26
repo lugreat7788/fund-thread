@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { AppState, Trade, Identity, TradeEvent, TradeDirection, StrategyTag, EventType, ImpactLevel } from '@/types/trade';
+import type { AppState, Trade, Identity, TradeEvent, TradeDirection, StrategyTag, EventType, ImpactLevel, Currency, MergedPosition } from '@/types/trade';
 import type { User } from '@supabase/supabase-js';
 
 export function useCloudTradeStore(user: User) {
