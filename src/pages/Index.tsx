@@ -14,7 +14,8 @@ import { TradeReviewPanel } from '@/components/TradeReviewPanel';
 import { AuthPage } from '@/components/AuthPage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, LogOut, Loader2, Bot } from 'lucide-react';
+import { Search, LogOut, Loader2, Bot, Layers } from 'lucide-react';
+import { CURRENCY_SYMBOLS } from '@/types/trade';
 import type { User } from '@supabase/supabase-js';
 
 type Filter = 'all' | 'open' | 'closed';
