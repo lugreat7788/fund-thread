@@ -203,6 +203,7 @@ export type Database = {
           buy_price: number
           buy_reason: string | null
           created_at: string
+          currency: string
           direction: string
           id: string
           identity_id: string
@@ -221,6 +222,7 @@ export type Database = {
           buy_price: number
           buy_reason?: string | null
           created_at?: string
+          currency?: string
           direction: string
           id?: string
           identity_id: string
@@ -239,6 +241,7 @@ export type Database = {
           buy_price?: number
           buy_reason?: string | null
           created_at?: string
+          currency?: string
           direction?: string
           id?: string
           identity_id?: string
