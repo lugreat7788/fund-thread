@@ -1,5 +1,5 @@
 import type { Trade, TradeEvent } from '@/types/trade';
-import { STRATEGY_LABELS } from '@/types/trade';
+import { STRATEGY_LABELS, CURRENCY_SYMBOLS } from '@/types/trade';
 import { calcPnL } from '@/store/useCloudTradeStore';
 import { ClosePositionDialog } from './ClosePositionDialog';
 import { EventForm } from './EventForm';
