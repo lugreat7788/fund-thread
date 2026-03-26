@@ -119,30 +119,8 @@ function Dashboard({ user }: { user: User }) {
           </div>
         </div>
 
-        {/* Merged positions view */}
         {showMerged && mergedPositions.length > 0 && (
-          <div className="bg-card border border-border rounded-lg p-4 space-y-2">
-            <div className="text-sm font-display font-medium text-foreground mb-2">📦 合并持仓视图</div>
-            <div className="grid gap-2">
-              {mergedPositions.map(m => {
-                const cs = CURRENCY_SYMBOLS[m.currency] || '¥';
-                return (
-                  <div key={`${m.symbol}_${m.direction}`} className="flex items-center justify-between bg-secondary/30 rounded-md px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-medium">{m.symbol}</span>
-                      <span className="text-xs text-muted-foreground">{m.name}</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary">{m.direction === 'long' ? '多' : '空'}</span>
-                      <span className="text-xs text-muted-foreground">{m.trades.length}笔</span>
-                    </div>
-                    <div className="text-right font-mono text-xs">
-                      <div>均价 {cs}{m.avgPrice.toFixed(2)}</div>
-                      <div className="text-muted-foreground">总{m.totalShares}股 · 成本 {cs}{m.totalCost.toFixed(0)}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <MergedPositionsPanel positions={mergedPositions} />
         )}
 
         <div className="space-y-3">
