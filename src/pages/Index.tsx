@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCloudTradeStore, calcStats, mergePositions } from '@/store/useCloudTradeStore';
 import { useNotesStore } from '@/store/useNotesStore';
 import { useReviewStore } from '@/store/useReviewStore';
+import { useOrderStore } from '@/store/useOrderStore';
 import { StatsBar } from '@/components/StatsBar';
 import { TradeForm } from '@/components/TradeForm';
 import { TradeCard } from '@/components/TradeCard';
