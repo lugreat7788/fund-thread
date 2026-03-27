@@ -38,6 +38,140 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_logs: {
+        Row: {
+          action: string
+          created_at: string
+          currency: string
+          direction: string
+          id: string
+          identity_id: string
+          name: string
+          note: string | null
+          order_id: string | null
+          price: number
+          shares: number
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          id?: string
+          identity_id: string
+          name: string
+          note?: string | null
+          order_id?: string | null
+          price: number
+          shares: number
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          id?: string
+          identity_id?: string
+          name?: string
+          note?: string | null
+          order_id?: string | null
+          price?: number
+          shares?: number
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_logs_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operation_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pending_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_orders: {
+        Row: {
+          action: string
+          created_at: string
+          currency: string
+          direction: string
+          executed_at: string | null
+          executed_price: number | null
+          id: string
+          identity_id: string
+          name: string
+          reason: string | null
+          shares: number
+          source_article: string | null
+          status: string
+          strategy: string
+          symbol: string
+          target_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          executed_at?: string | null
+          executed_price?: number | null
+          id?: string
+          identity_id: string
+          name: string
+          reason?: string | null
+          shares?: number
+          source_article?: string | null
+          status?: string
+          strategy?: string
+          symbol: string
+          target_price: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          executed_at?: string | null
+          executed_price?: number | null
+          id?: string
+          identity_id?: string
+          name?: string
+          reason?: string | null
+          shares?: number
+          source_article?: string | null
+          status?: string
+          strategy?: string
+          symbol?: string
+          target_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_orders_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_events: {
         Row: {
           action: string | null
