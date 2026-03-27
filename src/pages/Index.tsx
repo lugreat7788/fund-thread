@@ -93,6 +93,18 @@ function Dashboard({ user }: { user: User }) {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        <ArticleOrderPanel
+          orders={orderStore.orders}
+          logs={orderStore.logs}
+          pendingOrders={orderStore.pendingOrders}
+          loading={orderStore.loading}
+          onAddOrders={orderStore.addOrders}
+          onCancel={orderStore.cancelOrder}
+          onExecute={orderStore.executeOrder}
+          onParseArticle={orderStore.parseArticle}
+          onReload={orderStore.reload}
+          identityName={store.activeIdentity?.name}
+        />
         <TradeNotesPanel
           notes={notesStore.notes}
           loading={notesStore.loading}
