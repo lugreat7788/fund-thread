@@ -147,7 +147,7 @@ function Dashboard({ user }: { user: User }) {
             </div>
           ) : (
             filteredTrades.map(trade => (
-              <TradeCard key={trade.id} trade={trade} onClose={store.closeTrade} onDelete={store.deleteTrade}
+              <TradeCard key={trade.id} trade={trade} onClose={store.closeTrade} onUpdate={store.updateTrade} onDelete={store.deleteTrade}
                 onAddEvent={store.addEvent} onDeleteEvent={store.deleteEvent} />
             ))
           )}
