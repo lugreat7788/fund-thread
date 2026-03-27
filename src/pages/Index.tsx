@@ -12,6 +12,7 @@ import { IdentitySelector } from '@/components/IdentitySelector';
 import { ComparisonView } from '@/components/ComparisonView';
 import { MergedPositionsPanel } from '@/components/MergedPositionsPanel';
 import { TradeNotesPanel } from '@/components/TradeNotesPanel';
+import { ArticleOrderPanel } from '@/components/ArticleOrderPanel';
 import { TradeReviewPanel } from '@/components/TradeReviewPanel';
 import { AuthPage } from '@/components/AuthPage';
 import { Input } from '@/components/ui/input';
