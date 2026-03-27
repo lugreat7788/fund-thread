@@ -1,7 +1,8 @@
-import type { Trade, TradeEvent } from '@/types/trade';
+import type { Trade, TradeEvent, TradeDirection, StrategyTag, Currency } from '@/types/trade';
 import { STRATEGY_LABELS, CURRENCY_SYMBOLS } from '@/types/trade';
 import { calcPnL } from '@/store/useCloudTradeStore';
 import { ClosePositionDialog } from './ClosePositionDialog';
+import { EditTradeDialog } from './EditTradeDialog';
 import { EventForm } from './EventForm';
 import { EventTimeline } from './EventTimeline';
 import { KlineChart } from './KlineChart';
@@ -12,6 +13,7 @@ import { useState } from 'react';
 interface Props {
   trade: Trade;
   onClose: (id: string, sellDate: string, sellPrice: number, sellReason: string) => void;
+  onUpdate: (id: string, updates: Partial<Pick<Trade, 'symbol' | 'name' | 'direction' | 'buyDate' | 'buyPrice' | 'shares' | 'buyReason' | 'strategy' | 'currency'>>) => void;
   onDelete: (id: string) => void;
   onAddEvent: (tradeId: string, event: Omit<TradeEvent, 'id'>) => void;
   onDeleteEvent: (tradeId: string, eventId: string) => void;
