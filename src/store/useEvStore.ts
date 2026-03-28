@@ -220,8 +220,8 @@ export function useEvStore(user: User) {
     if (data) setDcaRecords(prev => [{
       id: data.id, date: (data as any).date, symbol: (data as any).symbol, name: (data as any).name,
       amount: Number((data as any).amount), price: Number((data as any).price),
-      shares: Number((data as any).shares), priority: (data as any).priority, createdAt: (data as any).created_at,
-    }, ...prev]);
+      shares: Number(d.shares), priority: d.priority, createdAt: d.created_at,
+    }, ...prev]); }
   }, [user.id]);
 
   // CRUD: Reviews
