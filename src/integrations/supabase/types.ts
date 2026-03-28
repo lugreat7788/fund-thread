@@ -14,6 +14,299 @@ export type Database = {
   }
   public: {
     Tables: {
+      ev_dca_records: {
+        Row: {
+          amount: number
+          created_at: string | null
+          date: string
+          id: string
+          name: string
+          price: number
+          priority: string
+          shares: number
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          date: string
+          id?: string
+          name: string
+          price: number
+          priority?: string
+          shares: number
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          date?: string
+          id?: string
+          name?: string
+          price?: number
+          priority?: string
+          shares?: number
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ev_decisions: {
+        Row: {
+          admission_market_cap: boolean | null
+          admission_moat: boolean | null
+          admission_profitable: boolean | null
+          admission_result: string | null
+          admission_volume: boolean | null
+          buy_amount: number | null
+          buy_price: number | null
+          buy_shares: number | null
+          cancelled: boolean | null
+          created_at: string | null
+          current_tier: number | null
+          drop_percent: number | null
+          ev_value: number | null
+          executed: boolean | null
+          expected_gain_pct: number | null
+          expected_loss_pct: number | null
+          fundamental_decline_reason: string | null
+          fundamental_earnings: boolean | null
+          fundamental_growth: boolean | null
+          fundamental_industry: boolean | null
+          fundamental_result: string | null
+          holding_id: string | null
+          id: string
+          symbol: string
+          user_id: string
+          veto_gov_contract: boolean | null
+          veto_leveraged: boolean | null
+          veto_no_revenue: boolean | null
+          win_probability: number | null
+        }
+        Insert: {
+          admission_market_cap?: boolean | null
+          admission_moat?: boolean | null
+          admission_profitable?: boolean | null
+          admission_result?: string | null
+          admission_volume?: boolean | null
+          buy_amount?: number | null
+          buy_price?: number | null
+          buy_shares?: number | null
+          cancelled?: boolean | null
+          created_at?: string | null
+          current_tier?: number | null
+          drop_percent?: number | null
+          ev_value?: number | null
+          executed?: boolean | null
+          expected_gain_pct?: number | null
+          expected_loss_pct?: number | null
+          fundamental_decline_reason?: string | null
+          fundamental_earnings?: boolean | null
+          fundamental_growth?: boolean | null
+          fundamental_industry?: boolean | null
+          fundamental_result?: string | null
+          holding_id?: string | null
+          id?: string
+          symbol: string
+          user_id: string
+          veto_gov_contract?: boolean | null
+          veto_leveraged?: boolean | null
+          veto_no_revenue?: boolean | null
+          win_probability?: number | null
+        }
+        Update: {
+          admission_market_cap?: boolean | null
+          admission_moat?: boolean | null
+          admission_profitable?: boolean | null
+          admission_result?: string | null
+          admission_volume?: boolean | null
+          buy_amount?: number | null
+          buy_price?: number | null
+          buy_shares?: number | null
+          cancelled?: boolean | null
+          created_at?: string | null
+          current_tier?: number | null
+          drop_percent?: number | null
+          ev_value?: number | null
+          executed?: boolean | null
+          expected_gain_pct?: number | null
+          expected_loss_pct?: number | null
+          fundamental_decline_reason?: string | null
+          fundamental_earnings?: boolean | null
+          fundamental_growth?: boolean | null
+          fundamental_industry?: boolean | null
+          fundamental_result?: string | null
+          holding_id?: string | null
+          id?: string
+          symbol?: string
+          user_id?: string
+          veto_gov_contract?: boolean | null
+          veto_leveraged?: boolean | null
+          veto_no_revenue?: boolean | null
+          win_probability?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ev_decisions_holding_id_fkey"
+            columns: ["holding_id"]
+            isOneToOne: false
+            referencedRelation: "ev_holdings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ev_errors: {
+        Row: {
+          created_at: string | null
+          error_type: string
+          id: string
+          is_revoked: boolean | null
+          lesson: string
+          loss_estimate: number | null
+          occurred_at: string
+          symbol: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_type: string
+          id?: string
+          is_revoked?: boolean | null
+          lesson: string
+          loss_estimate?: number | null
+          occurred_at: string
+          symbol?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_type?: string
+          id?: string
+          is_revoked?: boolean | null
+          lesson?: string
+          loss_estimate?: number | null
+          occurred_at?: string
+          symbol?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ev_holdings: {
+        Row: {
+          asset_type: string
+          avg_price: number
+          buy_tier1_price: number | null
+          buy_tier2_price: number | null
+          buy_tier3_price: number | null
+          created_at: string | null
+          disposal_plan: string | null
+          id: string
+          is_closed: boolean | null
+          name: string
+          notes: string | null
+          recent_high: number | null
+          sell_tier1_done: boolean | null
+          sell_tier1_price: number | null
+          sell_tier2_done: boolean | null
+          sell_tier2_price: number | null
+          sell_tier3_done: boolean | null
+          sell_tier3_price: number | null
+          shares: number
+          status: string
+          symbol: string
+          total_cost: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          asset_type?: string
+          avg_price: number
+          buy_tier1_price?: number | null
+          buy_tier2_price?: number | null
+          buy_tier3_price?: number | null
+          created_at?: string | null
+          disposal_plan?: string | null
+          id?: string
+          is_closed?: boolean | null
+          name: string
+          notes?: string | null
+          recent_high?: number | null
+          sell_tier1_done?: boolean | null
+          sell_tier1_price?: number | null
+          sell_tier2_done?: boolean | null
+          sell_tier2_price?: number | null
+          sell_tier3_done?: boolean | null
+          sell_tier3_price?: number | null
+          shares: number
+          status?: string
+          symbol: string
+          total_cost: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          asset_type?: string
+          avg_price?: number
+          buy_tier1_price?: number | null
+          buy_tier2_price?: number | null
+          buy_tier3_price?: number | null
+          created_at?: string | null
+          disposal_plan?: string | null
+          id?: string
+          is_closed?: boolean | null
+          name?: string
+          notes?: string | null
+          recent_high?: number | null
+          sell_tier1_done?: boolean | null
+          sell_tier1_price?: number | null
+          sell_tier2_done?: boolean | null
+          sell_tier2_price?: number | null
+          sell_tier3_done?: boolean | null
+          sell_tier3_price?: number | null
+          shares?: number
+          status?: string
+          symbol?: string
+          total_cost?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ev_monthly_reviews: {
+        Row: {
+          created_at: string | null
+          holdings_status: Json | null
+          id: string
+          month: string
+          next_month_plan: string | null
+          user_id: string
+          violations: string | null
+          watchlist: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          holdings_status?: Json | null
+          id?: string
+          month: string
+          next_month_plan?: string | null
+          user_id: string
+          violations?: string | null
+          watchlist?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          holdings_status?: Json | null
+          id?: string
+          month?: string
+          next_month_plan?: string | null
+          user_id?: string
+          violations?: string | null
+          watchlist?: string | null
+        }
+        Relationships: []
+      }
       identities: {
         Row: {
           color: string
