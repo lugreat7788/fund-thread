@@ -232,9 +232,9 @@ export function useEvStore(user: User) {
     }).select().single();
     if (data) setReviews(prev => [{
       id: data.id, month: (data as any).month, violations: (data as any).violations,
-      holdingsStatus: (data as any).holdings_status, nextMonthPlan: (data as any).next_month_plan,
-      watchlist: (data as any).watchlist, createdAt: (data as any).created_at,
-    }, ...prev]);
+      holdingsStatus: d.holdings_status, nextMonthPlan: d.next_month_plan,
+      watchlist: d.watchlist, createdAt: d.created_at,
+    }, ...prev]); }
   }, [user.id]);
 
   // CRUD: Errors
