@@ -208,7 +208,7 @@ export function useEvStore(user: User) {
       expected_loss_pct: d.expectedLossPct, ev_value: d.evValue,
       executed: d.executed, cancelled: d.cancelled,
     }).select().single();
-    if (data) setDecisions(prev => [mapDecision(data), ...prev]);
+    if (data) setDecisions(prev => [mapDecision(data as any), ...prev]);
   }, [user.id]);
 
   // CRUD: DCA
