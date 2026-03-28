@@ -211,43 +211,28 @@ export function useEvStore(user: User) {
     if (data) setDecisions(prev => [mapDecision(data as any), ...prev]);
   }, [user.id]);
 
-  // CRUD: DCA
   const addDcaRecord = useCallback(async (r: Omit<EvDcaRecord, 'id' | 'createdAt'>) => {
     const { data } = await db('ev_dca_records').insert({
       user_id: user.id, date: r.date, symbol: r.symbol, name: r.name,
       amount: r.amount, price: r.price, shares: r.shares, priority: r.priority,
     }).select().single();
-    if (data) setDcaRecords(prev => [{
-      id: data.id, date: (data as any).date, symbol: (data as any).symbol, name: (data as any).name,
-      amount: Number((data as any).amount), price: Number((data as any).price),
-      shares: Number(d.shares), priority: d.priority, createdAt: d.created_at,
-    }, ...prev]); }
+    if (data) { const d = data as any; setDcaRecords(prev => [{ id: d.id, date: d.date, symbol: d.symbol, name: d.name, amount: Number(d.amount), price: Number(d.price), shares: Number(d.shares), priority: d.priority, createdAt: d.created_at }, ...prev]); }
   }, [user.id]);
 
-  // CRUD: Reviews
   const addReview = useCallback(async (r: Omit<EvMonthlyReview, 'id' | 'createdAt'>) => {
     const { data } = await db('ev_monthly_reviews').insert({
       user_id: user.id, month: r.month, violations: r.violations,
       holdings_status: r.holdingsStatus, next_month_plan: r.nextMonthPlan, watchlist: r.watchlist,
     }).select().single();
-    if (data) setReviews(prev => [{
-      id: data.id, month: (data as any).month, violations: (data as any).violations,
-      holdingsStatus: d.holdings_status, nextMonthPlan: d.next_month_plan,
-      watchlist: d.watchlist, createdAt: d.created_at,
-    }, ...prev]); }
+    if (data) { const d = data as any; setReviews(prev => [{ id: d.id, month: d.month, violations: d.violations, holdingsStatus: d.holdings_status, nextMonthPlan: d.next_month_plan, watchlist: d.watchlist, createdAt: d.created_at }, ...prev]); }
   }, [user.id]);
 
-  // CRUD: Errors
   const addError = useCallback(async (e: Omit<EvError, 'id' | 'createdAt' | 'isRevoked'>) => {
     const { data } = await db('ev_errors').insert({
       user_id: user.id, error_type: e.errorType, occurred_at: e.occurredAt,
       symbol: e.symbol, loss_estimate: e.lossEstimate, lesson: e.lesson,
     }).select().single();
-    if (data) setErrors(prev => [{
-      id: data.id, errorType: (data as any).error_type, occurredAt: (data as any).occurred_at,
-      symbol: d.symbol, lossEstimate: d.loss_estimate ? Number(d.loss_estimate) : undefined,
-      lesson: d.lesson, isRevoked: d.is_revoked, createdAt: d.created_at,
-    }, ...prev]); }
+    if (data) { const d = data as any; setErrors(prev => [{ id: d.id, errorType: d.error_type, occurredAt: d.occurred_at, symbol: d.symbol, lossEstimate: d.loss_estimate ? Number(d.loss_estimate) : undefined, lesson: d.lesson, isRevoked: d.is_revoked, createdAt: d.created_at }, ...prev]); }
   }, [user.id]);
 
   const revokeError = useCallback(async (id: string) => {
