@@ -72,42 +72,55 @@ export function useCloudTradeStore(user: User) {
 
   // Sync a symbol's aggregate position to ev_holdings
   const syncToEvHolding = useCallback(async (symbol: string, name: string) => {
-    const { data: openTrades } = await supabase.from('trades')
-      .select('buy_price, shares')
-      .eq('user_id', user.id)
-      .eq('symbol', symbol)
-      .is('sell_date', null);
+    try {
+      const { data: openTrades } = await supabase.from('trades')
+        .select('buy_price, shares')
+        .eq('user_id', user.id)
+        .eq('symbol', symbol)
+        .is('sell_date', null);
 
-    const rows = openTrades ?? [];
-    const totalShares = rows.reduce((s: number, t: any) => s + Number(t.shares), 0);
-    const totalCost = rows.reduce((s: number, t: any) => s + Number(t.buy_price) * Number(t.shares), 0);
-    const avgPrice = totalShares > 0 ? +(totalCost / totalShares).toFixed(4) : 0;
+      const rows = openTrades ?? [];
+      const totalShares = rows.reduce((s: number, t: any) => s + Number(t.shares), 0);
+      const totalCost = rows.reduce((s: number, t: any) => s + Number(t.buy_price) * Number(t.shares), 0);
+      const avgPrice = totalShares > 0 ? +(totalCost / totalShares).toFixed(4) : 0;
 
-    const { data: existing } = await supabase.from('ev_holdings' as any)
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('symbol', symbol)
-      .maybeSingle();
+      const { data: existing } = await (supabase as any).from('ev_holdings')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('symbol', symbol)
+        .eq('is_closed', false)
+        .maybeSingle();
 
-    if (totalShares > 0) {
-      if (existing) {
-        await supabase.from('ev_holdings' as any).update({
-          shares: totalShares, avg_price: avgPrice, total_cost: +totalCost.toFixed(2),
-          is_closed: false, updated_at: new Date().toISOString(),
+      if (totalShares > 0) {
+        if (existing) {
+          await (supabase as any).from('ev_holdings').update({
+            shares: totalShares, avg_price: avgPrice, total_cost: +totalCost.toFixed(2),
+            name, is_closed: false, updated_at: new Date().toISOString(),
+          }).eq('id', existing.id);
+        } else {
+          await (supabase as any).from('ev_holdings').insert({
+            user_id: user.id, symbol, name, asset_type: 'stock',
+            shares: totalShares, avg_price: avgPrice, total_cost: +totalCost.toFixed(2),
+            status: 'watch',
+          });
+        }
+      } else if (existing) {
+        await (supabase as any).from('ev_holdings').update({
+          shares: 0, is_closed: true, updated_at: new Date().toISOString(),
         }).eq('id', existing.id);
-      } else {
-        await supabase.from('ev_holdings' as any).insert({
-          user_id: user.id, symbol, name, asset_type: 'stock',
-          shares: totalShares, avg_price: avgPrice, total_cost: +totalCost.toFixed(2),
-          status: 'watch',
-        });
       }
-    } else if (existing) {
-      await supabase.from('ev_holdings' as any).update({
-        shares: 0, is_closed: true, updated_at: new Date().toISOString(),
-      }).eq('id', existing.id);
+    } catch (e) {
+      console.error('syncToEvHolding error:', e);
     }
   }, [user.id]);
+
+  // Bulk sync: recalculate all EV holdings from current trades
+  const syncAllToEv = useCallback(async () => {
+    const openTrades = trades.filter(t => !t.sellPrice);
+    const symbols = new Map<string, string>();
+    openTrades.forEach(t => symbols.set(t.symbol, t.name));
+    await Promise.all(Array.from(symbols.entries()).map(([sym, name]) => syncToEvHolding(sym, name)));
+  }, [trades, syncToEvHolding]);
 
   const addTrade = useCallback(async (trade: Omit<Trade, 'id' | 'events' | 'createdAt' | 'updatedAt'>) => {
     const { data } = await supabase.from('trades').insert({
@@ -244,7 +257,7 @@ export function useCloudTradeStore(user: User) {
   return {
     identities, trades, activeIdentityId, activeIdentity, activeTrades, loading,
     setActiveIdentity: setActiveIdentityId,
-    addIdentity, deleteIdentity, addTrade, updateTrade, closeTrade, deleteTrade, addEvent, deleteEvent,
+    addIdentity, deleteIdentity, addTrade, updateTrade, closeTrade, deleteTrade, addEvent, deleteEvent, syncAllToEv,
   };
 }
 

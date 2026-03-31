@@ -14,7 +14,8 @@ import { SentimentDashboard } from '@/components/SentimentDashboard';
 import { AuthPage } from '@/components/AuthPage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, LogOut, Loader2, Bot, Layers, TrendingUp, BookOpen } from 'lucide-react';
+import { Search, LogOut, Loader2, Bot, Layers, TrendingUp, BookOpen, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 import type { User } from '@supabase/supabase-js';
 
@@ -24,7 +25,9 @@ function Dashboard({ user }: { user: User }) {
   const navigate = useNavigate();
   const store = useCloudTradeStore(user);
   const notesStore = useNotesStore(user, store.activeIdentityId);
+  const { toast } = useToast();
   const [filter, setFilter] = useState<Filter>('all');
+  const [syncing, setSyncing] = useState(false);
   const [search, setSearch] = useState('');
   const [showMerged, setShowMerged] = useState(false);
 
@@ -67,6 +70,19 @@ function Dashboard({ user }: { user: User }) {
             <div className="flex items-center gap-1.5">
               <Button variant="outline" size="sm" onClick={() => navigate('/ev')} className="gap-1 px-2 sm:px-3">
                 <TrendingUp className="w-4 h-4" /> <span className="hidden sm:inline">EV系统</span>
+              </Button>
+              <Button variant="ghost" size="sm" disabled={syncing} className="gap-1 px-2 text-muted-foreground"
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    await store.syncAllToEv();
+                    toast({ title: '同步完成', description: '持仓数据已同步到EV模块' });
+                  } catch {
+                    toast({ title: '同步失败', description: '请稍后重试', variant: 'destructive' });
+                  } finally { setSyncing(false); }
+                }}>
+                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline text-xs">同步EV</span>
               </Button>
               <Button variant="outline" size="sm" onClick={() => navigate('/review')} className="gap-1 px-2 sm:px-3">
                 <BookOpen className="w-4 h-4" /> <span className="hidden sm:inline">复盘总结</span>
