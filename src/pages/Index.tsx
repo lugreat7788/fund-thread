@@ -14,6 +14,7 @@ import { MergedPositionsPanel } from '@/components/MergedPositionsPanel';
 import { TradeNotesPanel } from '@/components/TradeNotesPanel';
 import { ArticleOrderPanel } from '@/components/ArticleOrderPanel';
 import { TradeReviewPanel } from '@/components/TradeReviewPanel';
+import { SentimentDashboard } from '@/components/SentimentDashboard';
 import { AuthPage } from '@/components/AuthPage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -117,6 +118,7 @@ function Dashboard({ user }: { user: User }) {
           onParseAttachment={notesStore.parseAttachment}
           identityName={store.activeIdentity?.name}
         />
+        <SentimentDashboard />
         <StatsBar trades={store.activeTrades} />
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
