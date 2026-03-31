@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Activity, Edit2, Check } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Activity, Edit2, Check, Clock, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -10,6 +10,8 @@ interface QuoteItem {
   price: number;
   changePercent: number;
   category: string;
+  marketState?: string;
+  marketTime?: string;
 }
 
 interface SentimentData {
@@ -21,10 +23,13 @@ interface SentimentData {
   hkGlobalIndices: QuoteItem[];
   macroIndicators: QuoteItem[];
   crypto: QuoteItem[];
+  usMarketState?: string;
+  latestDataTime?: string;
+  advice?: string[];
   updatedAt: string;
 }
 
-// ─── Manual settings stored in localStorage ───
+// ─── Manual settings ───
 interface ManualSettings {
   nasdaqATH: number;
   sp500ATH: number;
@@ -47,15 +52,14 @@ function saveSettings(s: ManualSettings) {
 // ─── Sentiment levels ───
 type SentimentLevel = 'extreme_fear' | 'fear' | 'neutral' | 'greed' | 'extreme_greed';
 
-const SENTIMENT_CONFIG: Record<SentimentLevel, { color: string; bg: string; bar: string; label: string; emoji: string; advice: string }> = {
-  extreme_fear:  { color: 'text-[hsl(0,80%,55%)]',   bg: 'bg-[hsl(0,60%,15%)]',   bar: 'bg-[hsl(0,80%,55%)]',   label: '极度恐慌', emoji: '😱', advice: '核心仓位加仓机会，关注黄金坑' },
-  fear:          { color: 'text-[hsl(20,80%,55%)]',  bg: 'bg-[hsl(20,50%,14%)]',  bar: 'bg-[hsl(20,80%,55%)]',  label: '悲观',     emoji: '😨', advice: '可小幅加仓优质标的，做好风控' },
-  neutral:       { color: 'text-muted-foreground',   bg: 'bg-secondary/40',        bar: 'bg-muted-foreground',   label: '中性',     emoji: '😐', advice: '维持现有仓位，按纪律操作' },
-  greed:         { color: 'text-[hsl(142,70%,45%)]', bg: 'bg-[hsl(142,40%,12%)]', bar: 'bg-[hsl(142,70%,45%)]', label: '乐观',     emoji: '😏', advice: '注意止盈，逐步兑现浮盈' },
-  extreme_greed: { color: 'text-profit',             bg: 'bg-[hsl(45,50%,12%)]',  bar: 'bg-profit',             label: '极度贪婪', emoji: '🤑', advice: '开始分批减仓，最少保留6成底仓' },
+const SENTIMENT_CONFIG: Record<SentimentLevel, { color: string; bg: string; label: string; emoji: string; advice: string }> = {
+  extreme_fear:  { color: 'text-[hsl(0,80%,55%)]',   bg: 'bg-[hsl(0,60%,15%)]',   label: '极度恐慌', emoji: '😱', advice: '核心仓位加仓机会，关注黄金坑' },
+  fear:          { color: 'text-[hsl(20,80%,55%)]',  bg: 'bg-[hsl(20,50%,14%)]',  label: '悲观',     emoji: '😨', advice: '可小幅加仓优质标的，做好风控' },
+  neutral:       { color: 'text-muted-foreground',   bg: 'bg-secondary/40',        label: '中性',     emoji: '😐', advice: '维持现有仓位，按纪律操作' },
+  greed:         { color: 'text-[hsl(142,70%,45%)]', bg: 'bg-[hsl(142,40%,12%)]', label: '乐观',     emoji: '😏', advice: '注意止盈，逐步兑现浮盈' },
+  extreme_greed: { color: 'text-profit',             bg: 'bg-[hsl(45,50%,12%)]',  label: '极度贪婪', emoji: '🤑', advice: '开始分批减仓，最少保留6成底仓' },
 };
 
-// ─── VIX percentile label ───
 function vixLabel(vix: number): { text: string; color: string } {
   if (vix < 15) return { text: '极度贪婪', color: 'text-profit' };
   if (vix < 20) return { text: '正常', color: 'text-muted-foreground' };
@@ -63,29 +67,25 @@ function vixLabel(vix: number): { text: string; color: string } {
   return { text: '恐慌', color: 'text-[hsl(0,80%,55%)]' };
 }
 
-// ─── Composite sentiment: VIX (40%) + avg drop from ATH (35%) + CNN (25%) ───
 function calcCompositeSentiment(vix: number | undefined, nasdaqDrop: number | undefined, sp500Drop: number | undefined, cnn: number): { score: number; level: SentimentLevel } {
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
   let totalWeight = 0;
   let weighted = 0;
 
-  // VIX: 10=greedy(100), 40=fearful(0)
   if (vix != null && vix > 0) {
     const s = clamp((40 - vix) / 30, 0, 1) * 100;
     weighted += s * 0.4;
     totalWeight += 0.4;
   }
 
-  // Average drop from ATH: 0%=greedy(100), -30%=fearful(0)
   const drops = [nasdaqDrop, sp500Drop].filter((d): d is number => d != null);
   if (drops.length > 0) {
-    const avgDrop = drops.reduce((a, b) => a + b, 0) / drops.length; // negative number
-    const s = clamp((avgDrop + 30) / 30, 0, 1) * 100; // -30%→0, 0%→100
+    const avgDrop = drops.reduce((a, b) => a + b, 0) / drops.length;
+    const s = clamp((avgDrop + 30) / 30, 0, 1) * 100;
     weighted += s * 0.35;
     totalWeight += 0.35;
   }
 
-  // CNN Fear & Greed: direct 0-100 mapping
   weighted += clamp(cnn, 0, 100) * 0.25;
   totalWeight += 0.25;
 
@@ -101,7 +101,32 @@ function calcCompositeSentiment(vix: number | undefined, nasdaqDrop: number | un
   return { score, level };
 }
 
-// ─── Small quote tile ───
+// ─── Market state helpers ───
+const MARKET_STATE_LABEL: Record<string, { text: string; color: string; dot: string }> = {
+  REGULAR:  { text: '交易中',  color: 'text-green-500', dot: 'bg-green-500' },
+  PRE:      { text: '盘前',   color: 'text-amber-500', dot: 'bg-amber-500' },
+  POST:     { text: '盘后',   color: 'text-amber-500', dot: 'bg-amber-500' },
+  PREPRE:   { text: '盘前',   color: 'text-amber-500', dot: 'bg-amber-500' },
+  POSTPOST: { text: '盘后',   color: 'text-amber-500', dot: 'bg-amber-500' },
+  CLOSED:   { text: '已收盘',  color: 'text-muted-foreground', dot: 'bg-muted-foreground' },
+};
+
+function formatDataTime(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+
+  const time = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  if (isToday) return `今天 ${time}`;
+  if (isYesterday) return `昨天 ${time}`;
+  return `${d.getMonth() + 1}/${d.getDate()} ${time}`;
+}
+
+// ─── Components ───
 function QuoteTile({ item }: { item: QuoteItem }) {
   const up = item.changePercent > 0;
   const down = item.changePercent < 0;
@@ -128,7 +153,6 @@ function QuoteTile({ item }: { item: QuoteItem }) {
   );
 }
 
-// ─── Core indicator card (top row) ───
 function CoreCard({ label, value, sub, subColor, extra }: {
   label: string; value: string; sub: string; subColor?: string; extra?: React.ReactNode;
 }) {
@@ -142,8 +166,7 @@ function CoreCard({ label, value, sub, subColor, extra }: {
   );
 }
 
-// ─── Gauge bar ───
-function GaugeBar({ score, level }: { score: number; level: SentimentLevel }) {
+function GaugeBar({ score }: { score: number }) {
   const zones = [
     { label: '极度恐慌', color: 'bg-[hsl(0,80%,45%)]',   width: 20 },
     { label: '悲观',     color: 'bg-[hsl(20,80%,50%)]',  width: 20 },
@@ -205,18 +228,15 @@ export function SentimentDashboard() {
     }
   };
 
-  // Extract key quotes
   const nasdaqQuote = data?.usIndices.find(q => q.symbol === 'QQQ');
   const sp500Quote = data?.usIndices.find(q => q.symbol === 'SPY');
   const vixQuote = data?.macroIndicators.find(q => q.symbol === '^VIX');
 
-  // Calculate drops from ATH
   const nasdaqDrop = nasdaqQuote && settings.nasdaqATH > 0
     ? ((nasdaqQuote.price - settings.nasdaqATH) / settings.nasdaqATH) * 100 : undefined;
   const sp500Drop = sp500Quote && settings.sp500ATH > 0
     ? ((sp500Quote.price - settings.sp500ATH) / settings.sp500ATH) * 100 : undefined;
 
-  // Composite sentiment
   const composite = useMemo(() =>
     calcCompositeSentiment(vixQuote?.price, nasdaqDrop, sp500Drop, settings.cnnFearGreed),
     [vixQuote?.price, nasdaqDrop, sp500Drop, settings.cnnFearGreed],
@@ -224,6 +244,12 @@ export function SentimentDashboard() {
 
   const cfg = SENTIMENT_CONFIG[composite.level];
   const vixInfo = vixQuote ? vixLabel(vixQuote.price) : undefined;
+
+  // Market state
+  const usState = data?.usMarketState ?? 'CLOSED';
+  const stateInfo = MARKET_STATE_LABEL[usState] ?? MARKET_STATE_LABEL.CLOSED;
+  const isLive = usState === 'REGULAR';
+  const dataTimeStr = formatDataTime(data?.latestDataTime);
 
   const handleSaveSettings = () => {
     setSettings(tempSettings);
@@ -241,9 +267,15 @@ export function SentimentDashboard() {
           <Activity className="w-4 h-4 text-primary" />
           <span className="text-sm font-display font-semibold">市场情绪仪表盘</span>
           {data && (
-            <span className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${cfg.color} ${cfg.bg}`}>
-              {cfg.emoji} {cfg.label} · {composite.score}
-            </span>
+            <>
+              <span className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${cfg.color} ${cfg.bg}`}>
+                {cfg.emoji} {cfg.label} · {composite.score}
+              </span>
+              <span className={`flex items-center gap-1 text-[10px] font-mono ${stateInfo.color}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${stateInfo.dot} ${isLive ? 'animate-pulse' : ''}`} />
+                {stateInfo.text}
+              </span>
+            </>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -261,7 +293,7 @@ export function SentimentDashboard() {
         </div>
       </button>
 
-      {/* Expanded body */}
+      {/* Body */}
       {open && (
         <div className="px-4 pb-4 space-y-4">
           {error && (
@@ -275,7 +307,25 @@ export function SentimentDashboard() {
 
           {data && (
             <>
-              {/* ── 1. Core Indicator Cards ── */}
+              {/* Market status bar */}
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/30 text-[10px] font-mono">
+                <div className="flex items-center gap-2">
+                  <span className={`flex items-center gap-1 ${stateInfo.color}`}>
+                    {isLive ? <Radio className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                    美股{stateInfo.text}
+                  </span>
+                  {!isLive && (
+                    <span className="text-muted-foreground">
+                      显示前一交易日收盘数据
+                    </span>
+                  )}
+                </div>
+                <span className="text-muted-foreground">
+                  {dataTimeStr && `数据时间: ${dataTimeStr}`}
+                </span>
+              </div>
+
+              {/* 1. Core Indicator Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <CoreCard
                   label="纳斯达克 (QQQ)"
@@ -312,7 +362,7 @@ export function SentimentDashboard() {
                 />
               </div>
 
-              {/* ── 2. Composite Sentiment Score + Advice ── */}
+              {/* 2. Composite Score + Gauge */}
               <div className={`rounded-xl p-4 border border-border ${cfg.bg}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">综合情绪评估</div>
@@ -331,8 +381,8 @@ export function SentimentDashboard() {
                     <div className="text-[10px] text-muted-foreground font-mono">VIX(40%) + 距高点跌幅(35%) + CNN恐贪(25%)</div>
                   </div>
                 </div>
-                <GaugeBar score={composite.score} level={composite.level} />
-                {/* Recommendation */}
+                <GaugeBar score={composite.score} />
+                {/* Quick advice */}
                 <div className={`mt-3 flex items-start gap-2 p-2.5 rounded-lg border ${cfg.bg} border-border`}>
                   <span className="text-sm leading-none mt-0.5">💡</span>
                   <div>
@@ -342,7 +392,22 @@ export function SentimentDashboard() {
                 </div>
               </div>
 
-              {/* ── 3. Manual Settings ── */}
+              {/* 3. Detailed Investment Advice */}
+              {data.advice && data.advice.length > 0 && (
+                <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-2">
+                  <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                    {isLive ? '实时投资建议' : '基于最新收盘数据的投资建议'}
+                  </div>
+                  {data.advice.map((tip, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs font-mono">
+                      <span className="text-primary mt-0.5 shrink-0">{tip.startsWith('建议') ? '👉' : tip.startsWith('注意') ? '⚠️' : '📊'}</span>
+                      <span className="text-foreground/80">{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 4. Manual Settings */}
               <div className="bg-secondary/30 rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">手动参数设置</div>
@@ -380,7 +445,7 @@ export function SentimentDashboard() {
                 )}
               </div>
 
-              {/* ── 4. Market Sections ── */}
+              {/* 5. Market Sections */}
               {data.cnIndices.length > 0 && (
                 <section>
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">A股主要指数</div>
@@ -426,7 +491,7 @@ export function SentimentDashboard() {
                 </section>
               )}
 
-              {/* ── 5. Scoring factor explanation ── */}
+              {/* 6. Scoring factors */}
               <section className="bg-secondary/30 rounded-xl p-3 space-y-1.5">
                 <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">综合评分因子</div>
                 {[
