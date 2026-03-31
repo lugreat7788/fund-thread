@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Activity, Edit2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface QuoteItem {
   symbol: string;
@@ -23,18 +24,82 @@ interface SentimentData {
   updatedAt: string;
 }
 
-// ─── Sentiment colour & config ───
-const SENTIMENT_CONFIG: Record<string, { color: string; bg: string; bar: string }> = {
-  extreme_fear:  { color: 'text-[hsl(0,80%,55%)]',   bg: 'bg-[hsl(0,60%,15%)]',   bar: 'bg-[hsl(0,80%,55%)]' },
-  fear:          { color: 'text-[hsl(20,80%,55%)]',  bg: 'bg-[hsl(20,50%,14%)]',  bar: 'bg-[hsl(20,80%,55%)]' },
-  neutral:       { color: 'text-muted-foreground',   bg: 'bg-secondary/40',        bar: 'bg-muted-foreground' },
-  greed:         { color: 'text-[hsl(142,70%,45%)]', bg: 'bg-[hsl(142,40%,12%)]', bar: 'bg-[hsl(142,70%,45%)]' },
-  extreme_greed: { color: 'text-profit',             bg: 'bg-[hsl(45,50%,12%)]',  bar: 'bg-profit' },
+// ─── Manual settings stored in localStorage ───
+interface ManualSettings {
+  nasdaqATH: number;
+  sp500ATH: number;
+  cnnFearGreed: number;
+}
+
+const SETTINGS_KEY = 'sentiment-manual-settings';
+const DEFAULT_SETTINGS: ManualSettings = { nasdaqATH: 540, sp500ATH: 610, cnnFearGreed: 50 };
+
+function loadSettings(): ManualSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+  } catch { return DEFAULT_SETTINGS; }
+}
+function saveSettings(s: ManualSettings) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+// ─── Sentiment levels ───
+type SentimentLevel = 'extreme_fear' | 'fear' | 'neutral' | 'greed' | 'extreme_greed';
+
+const SENTIMENT_CONFIG: Record<SentimentLevel, { color: string; bg: string; bar: string; label: string; emoji: string; advice: string }> = {
+  extreme_fear:  { color: 'text-[hsl(0,80%,55%)]',   bg: 'bg-[hsl(0,60%,15%)]',   bar: 'bg-[hsl(0,80%,55%)]',   label: '极度恐慌', emoji: '😱', advice: '核心仓位加仓机会，关注黄金坑' },
+  fear:          { color: 'text-[hsl(20,80%,55%)]',  bg: 'bg-[hsl(20,50%,14%)]',  bar: 'bg-[hsl(20,80%,55%)]',  label: '悲观',     emoji: '😨', advice: '可小幅加仓优质标的，做好风控' },
+  neutral:       { color: 'text-muted-foreground',   bg: 'bg-secondary/40',        bar: 'bg-muted-foreground',   label: '中性',     emoji: '😐', advice: '维持现有仓位，按纪律操作' },
+  greed:         { color: 'text-[hsl(142,70%,45%)]', bg: 'bg-[hsl(142,40%,12%)]', bar: 'bg-[hsl(142,70%,45%)]', label: '乐观',     emoji: '😏', advice: '注意止盈，逐步兑现浮盈' },
+  extreme_greed: { color: 'text-profit',             bg: 'bg-[hsl(45,50%,12%)]',  bar: 'bg-profit',             label: '极度贪婪', emoji: '🤑', advice: '开始分批减仓，最少保留6成底仓' },
 };
 
-const LEVEL_EMOJI: Record<string, string> = {
-  extreme_fear: '😱', fear: '😨', neutral: '😐', greed: '😏', extreme_greed: '🤑',
-};
+// ─── VIX percentile label ───
+function vixLabel(vix: number): { text: string; color: string } {
+  if (vix < 15) return { text: '极度贪婪', color: 'text-profit' };
+  if (vix < 20) return { text: '正常', color: 'text-muted-foreground' };
+  if (vix < 30) return { text: '警惕', color: 'text-[hsl(20,80%,55%)]' };
+  return { text: '恐慌', color: 'text-[hsl(0,80%,55%)]' };
+}
+
+// ─── Composite sentiment: VIX (40%) + avg drop from ATH (35%) + CNN (25%) ───
+function calcCompositeSentiment(vix: number | undefined, nasdaqDrop: number | undefined, sp500Drop: number | undefined, cnn: number): { score: number; level: SentimentLevel } {
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  let totalWeight = 0;
+  let weighted = 0;
+
+  // VIX: 10=greedy(100), 40=fearful(0)
+  if (vix != null && vix > 0) {
+    const s = clamp((40 - vix) / 30, 0, 1) * 100;
+    weighted += s * 0.4;
+    totalWeight += 0.4;
+  }
+
+  // Average drop from ATH: 0%=greedy(100), -30%=fearful(0)
+  const drops = [nasdaqDrop, sp500Drop].filter((d): d is number => d != null);
+  if (drops.length > 0) {
+    const avgDrop = drops.reduce((a, b) => a + b, 0) / drops.length; // negative number
+    const s = clamp((avgDrop + 30) / 30, 0, 1) * 100; // -30%→0, 0%→100
+    weighted += s * 0.35;
+    totalWeight += 0.35;
+  }
+
+  // CNN Fear & Greed: direct 0-100 mapping
+  weighted += clamp(cnn, 0, 100) * 0.25;
+  totalWeight += 0.25;
+
+  const score = totalWeight > 0 ? Math.round(weighted / totalWeight) : 50;
+
+  let level: SentimentLevel;
+  if (score <= 20) level = 'extreme_fear';
+  else if (score <= 40) level = 'fear';
+  else if (score <= 60) level = 'neutral';
+  else if (score <= 80) level = 'greed';
+  else level = 'extreme_greed';
+
+  return { score, level };
+}
 
 // ─── Small quote tile ───
 function QuoteTile({ item }: { item: QuoteItem }) {
@@ -46,7 +111,6 @@ function QuoteTile({ item }: { item: QuoteItem }) {
   const fmt = (v: number) => {
     if (v >= 10000) return v.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
     if (v >= 1000)  return v.toLocaleString('zh-CN', { maximumFractionDigits: 1 });
-    if (v >= 100)   return v.toFixed(2);
     return v.toFixed(2);
   };
 
@@ -64,33 +128,43 @@ function QuoteTile({ item }: { item: QuoteItem }) {
   );
 }
 
-// ─── Gauge bar (linear progress-style) ───
-function GaugeBar({ score, level }: { score: number; level: string }) {
-  const cfg = SENTIMENT_CONFIG[level] ?? SENTIMENT_CONFIG.neutral;
+// ─── Core indicator card (top row) ───
+function CoreCard({ label, value, sub, subColor, extra }: {
+  label: string; value: string; sub: string; subColor?: string; extra?: React.ReactNode;
+}) {
+  return (
+    <div className="bg-card rounded-xl border border-border p-3 flex flex-col gap-1">
+      <div className="text-[10px] text-muted-foreground font-mono">{label}</div>
+      <div className="text-lg font-display font-bold leading-tight">{value}</div>
+      <div className={`text-[10px] font-mono ${subColor ?? 'text-muted-foreground'}`}>{sub}</div>
+      {extra}
+    </div>
+  );
+}
+
+// ─── Gauge bar ───
+function GaugeBar({ score, level }: { score: number; level: SentimentLevel }) {
   const zones = [
-    { label: '极度恐慌', color: 'bg-[hsl(0,80%,45%)]',   width: 25 },
-    { label: '恐慌',     color: 'bg-[hsl(20,80%,50%)]',  width: 20 },
-    { label: '中性',     color: 'bg-muted/60',            width: 10 },
-    { label: '贪婪',     color: 'bg-[hsl(142,60%,40%)]', width: 20 },
-    { label: '极度贪婪', color: 'bg-profit',              width: 25 },
+    { label: '极度恐慌', color: 'bg-[hsl(0,80%,45%)]',   width: 20 },
+    { label: '悲观',     color: 'bg-[hsl(20,80%,50%)]',  width: 20 },
+    { label: '中性',     color: 'bg-muted/60',            width: 20 },
+    { label: '乐观',     color: 'bg-[hsl(142,60%,40%)]', width: 20 },
+    { label: '极度贪婪', color: 'bg-profit',              width: 20 },
   ];
 
   return (
     <div className="space-y-1.5">
-      {/* Colour-band bar */}
       <div className="relative h-3 rounded-full overflow-hidden flex">
         {zones.map(z => (
           <div key={z.label} className={`${z.color} h-full`} style={{ width: `${z.width}%` }} />
         ))}
-        {/* Indicator needle */}
         <div
           className="absolute top-0 h-full w-0.5 bg-white shadow-md transition-all duration-700"
           style={{ left: `${Math.min(98, Math.max(2, score))}%` }}
         />
       </div>
-      {/* Zone labels */}
       <div className="flex justify-between text-[9px] text-muted-foreground font-mono px-0.5">
-        <span>极度恐慌</span><span>恐慌</span><span>中性</span><span>贪婪</span><span>极度贪婪</span>
+        <span>极度恐慌</span><span>悲观</span><span>中性</span><span>乐观</span><span>极度贪婪</span>
       </div>
     </div>
   );
@@ -101,6 +175,11 @@ export function SentimentDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [settings, setSettings] = useState<ManualSettings>(loadSettings);
+  const [editingSettings, setEditingSettings] = useState(false);
+  const [tempSettings, setTempSettings] = useState(settings);
+
+  useEffect(() => { saveSettings(settings); }, [settings]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -126,12 +205,34 @@ export function SentimentDashboard() {
     }
   };
 
-  const sentimentLevel = data?.sentimentLevel ?? 'neutral';
-  const cfg = SENTIMENT_CONFIG[sentimentLevel] ?? SENTIMENT_CONFIG.neutral;
+  // Extract key quotes
+  const nasdaqQuote = data?.usIndices.find(q => q.symbol === 'QQQ');
+  const sp500Quote = data?.usIndices.find(q => q.symbol === 'SPY');
+  const vixQuote = data?.macroIndicators.find(q => q.symbol === '^VIX');
+
+  // Calculate drops from ATH
+  const nasdaqDrop = nasdaqQuote && settings.nasdaqATH > 0
+    ? ((nasdaqQuote.price - settings.nasdaqATH) / settings.nasdaqATH) * 100 : undefined;
+  const sp500Drop = sp500Quote && settings.sp500ATH > 0
+    ? ((sp500Quote.price - settings.sp500ATH) / settings.sp500ATH) * 100 : undefined;
+
+  // Composite sentiment
+  const composite = useMemo(() =>
+    calcCompositeSentiment(vixQuote?.price, nasdaqDrop, sp500Drop, settings.cnnFearGreed),
+    [vixQuote?.price, nasdaqDrop, sp500Drop, settings.cnnFearGreed],
+  );
+
+  const cfg = SENTIMENT_CONFIG[composite.level];
+  const vixInfo = vixQuote ? vixLabel(vixQuote.price) : undefined;
+
+  const handleSaveSettings = () => {
+    setSettings(tempSettings);
+    setEditingSettings(false);
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
-      {/* ── Header / toggle ── */}
+      {/* Header */}
       <button
         onClick={handleToggle}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/30 transition-colors"
@@ -141,7 +242,7 @@ export function SentimentDashboard() {
           <span className="text-sm font-display font-semibold">市场情绪仪表盘</span>
           {data && (
             <span className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${cfg.color} ${cfg.bg}`}>
-              {LEVEL_EMOJI[sentimentLevel]} {data.sentimentLabel} · {data.fearGreedScore}
+              {cfg.emoji} {cfg.label} · {composite.score}
             </span>
           )}
         </div>
@@ -160,7 +261,7 @@ export function SentimentDashboard() {
         </div>
       </button>
 
-      {/* ── Expanded body ── */}
+      {/* Expanded body */}
       {open && (
         <div className="px-4 pb-4 space-y-4">
           {error && (
@@ -174,29 +275,112 @@ export function SentimentDashboard() {
 
           {data && (
             <>
-              {/* ── Fear & Greed Score ── */}
+              {/* ── 1. Core Indicator Cards ── */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <CoreCard
+                  label="纳斯达克 (QQQ)"
+                  value={nasdaqQuote ? `$${nasdaqQuote.price.toFixed(1)}` : '--'}
+                  sub={nasdaqDrop != null ? `距高点 ${nasdaqDrop.toFixed(1)}%` : '未设置高点'}
+                  subColor={nasdaqDrop != null ? (nasdaqDrop < -10 ? 'text-loss' : nasdaqDrop < 0 ? 'text-[hsl(20,80%,55%)]' : 'text-profit') : undefined}
+                />
+                <CoreCard
+                  label="标普500 (SPY)"
+                  value={sp500Quote ? `$${sp500Quote.price.toFixed(1)}` : '--'}
+                  sub={sp500Drop != null ? `距高点 ${sp500Drop.toFixed(1)}%` : '未设置高点'}
+                  subColor={sp500Drop != null ? (sp500Drop < -10 ? 'text-loss' : sp500Drop < 0 ? 'text-[hsl(20,80%,55%)]' : 'text-profit') : undefined}
+                />
+                <CoreCard
+                  label="VIX 恐慌指数"
+                  value={vixQuote ? vixQuote.price.toFixed(1) : '--'}
+                  sub={vixInfo ? vixInfo.text : '--'}
+                  subColor={vixInfo?.color}
+                  extra={vixQuote ? (
+                    <div className="mt-0.5 h-1.5 rounded-full bg-secondary overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${vixQuote.price < 15 ? 'bg-profit' : vixQuote.price < 20 ? 'bg-muted-foreground' : vixQuote.price < 30 ? 'bg-[hsl(20,80%,55%)]' : 'bg-[hsl(0,80%,55%)]'}`}
+                        style={{ width: `${Math.min(100, (vixQuote.price / 50) * 100)}%` }}
+                      />
+                    </div>
+                  ) : undefined}
+                />
+                <CoreCard
+                  label="CNN恐贪指数"
+                  value={settings.cnnFearGreed.toString()}
+                  sub={settings.cnnFearGreed <= 25 ? '极度恐慌' : settings.cnnFearGreed <= 45 ? '恐慌' : settings.cnnFearGreed <= 55 ? '中性' : settings.cnnFearGreed <= 75 ? '贪婪' : '极度贪婪'}
+                  subColor={settings.cnnFearGreed <= 25 ? 'text-[hsl(0,80%,55%)]' : settings.cnnFearGreed <= 45 ? 'text-[hsl(20,80%,55%)]' : settings.cnnFearGreed <= 55 ? 'text-muted-foreground' : settings.cnnFearGreed <= 75 ? 'text-[hsl(142,70%,45%)]' : 'text-profit'}
+                  extra={<div className="text-[9px] text-muted-foreground">手动录入</div>}
+                />
+              </div>
+
+              {/* ── 2. Composite Sentiment Score + Advice ── */}
               <div className={`rounded-xl p-4 border border-border ${cfg.bg}`}>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">恐惧贪婪指数</div>
+                  <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">综合情绪评估</div>
                   <div className={`text-[10px] font-mono ${cfg.color}`}>
                     {data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''}
                   </div>
                 </div>
                 <div className="flex items-end gap-3 mb-4">
                   <div className={`text-5xl font-display font-bold leading-none ${cfg.color}`}>
-                    {data.fearGreedScore}
+                    {composite.score}
                   </div>
                   <div className="pb-1">
                     <div className={`text-base font-display font-semibold ${cfg.color}`}>
-                      {LEVEL_EMOJI[sentimentLevel]} {data.sentimentLabel}
+                      {cfg.emoji} {cfg.label}
                     </div>
-                    <div className="text-[10px] text-muted-foreground font-mono">0 极度恐慌 → 100 极度贪婪</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">VIX(40%) + 距高点跌幅(35%) + CNN恐贪(25%)</div>
                   </div>
                 </div>
-                <GaugeBar score={data.fearGreedScore} level={sentimentLevel} />
+                <GaugeBar score={composite.score} level={composite.level} />
+                {/* Recommendation */}
+                <div className={`mt-3 flex items-start gap-2 p-2.5 rounded-lg border ${cfg.bg} border-border`}>
+                  <span className="text-sm leading-none mt-0.5">💡</span>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground font-mono mb-0.5">推荐操作</div>
+                    <div className={`text-xs font-semibold ${cfg.color}`}>{cfg.advice}</div>
+                  </div>
+                </div>
               </div>
 
-              {/* ── A-share Indices ── */}
+              {/* ── 3. Manual Settings ── */}
+              <div className="bg-secondary/30 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">手动参数设置</div>
+                  {!editingSettings ? (
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1" onClick={() => { setTempSettings(settings); setEditingSettings(true); }}>
+                      <Edit2 className="w-3 h-3" /> 编辑
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1 text-primary" onClick={handleSaveSettings}>
+                      <Check className="w-3 h-3" /> 保存
+                    </Button>
+                  )}
+                </div>
+                {editingSettings ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">纳指(QQQ)历史高点</label>
+                      <Input className="h-7 text-xs" value={tempSettings.nasdaqATH} onChange={e => setTempSettings(p => ({ ...p, nasdaqATH: parseFloat(e.target.value) || 0 }))} />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">标普(SPY)历史高点</label>
+                      <Input className="h-7 text-xs" value={tempSettings.sp500ATH} onChange={e => setTempSettings(p => ({ ...p, sp500ATH: parseFloat(e.target.value) || 0 }))} />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">CNN恐贪指数 (0-100)</label>
+                      <Input className="h-7 text-xs" value={tempSettings.cnnFearGreed} onChange={e => setTempSettings(p => ({ ...p, cnnFearGreed: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }))} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-4 text-[10px] font-mono text-muted-foreground">
+                    <span>QQQ高点: ${settings.nasdaqATH}</span>
+                    <span>SPY高点: ${settings.sp500ATH}</span>
+                    <span>CNN: {settings.cnnFearGreed}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* ── 4. Market Sections ── */}
               {data.cnIndices.length > 0 && (
                 <section>
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">A股主要指数</div>
@@ -206,7 +390,6 @@ export function SentimentDashboard() {
                 </section>
               )}
 
-              {/* ── US Indices ── */}
               {data.usIndices.length > 0 && (
                 <section>
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">美股主要指数</div>
@@ -216,7 +399,6 @@ export function SentimentDashboard() {
                 </section>
               )}
 
-              {/* ── HK & Global ── */}
               {data.hkGlobalIndices.length > 0 && (
                 <section>
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">港股 / 全球</div>
@@ -226,7 +408,6 @@ export function SentimentDashboard() {
                 </section>
               )}
 
-              {/* ── Macro Indicators ── */}
               {data.macroIndicators.length > 0 && (
                 <section>
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">宏观指标</div>
@@ -236,7 +417,6 @@ export function SentimentDashboard() {
                 </section>
               )}
 
-              {/* ── Crypto ── */}
               {data.crypto.length > 0 && (
                 <section>
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">加密货币</div>
@@ -246,13 +426,13 @@ export function SentimentDashboard() {
                 </section>
               )}
 
-              {/* ── Score Factor Explanation ── */}
+              {/* ── 5. Scoring factor explanation ── */}
               <section className="bg-secondary/30 rounded-xl p-3 space-y-1.5">
-                <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">指数构成因子</div>
+                <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">综合评分因子</div>
                 {[
-                  { label: 'VIX 恐慌指数', weight: '40%', desc: '低VIX = 贪婪，高VIX = 恐慌' },
-                  { label: '市场动量 (SPY)', weight: '35%', desc: '当日涨跌反映短期情绪' },
-                  { label: '避险需求 (黄金)', weight: '25%', desc: '黄金上涨 = 避险情绪升温' },
+                  { label: 'VIX 恐慌指数', weight: '40%', desc: '<15极度贪婪 / 15-20正常 / 20-30警惕 / >30恐慌' },
+                  { label: '距历史高点跌幅', weight: '35%', desc: '纳指+标普平均跌幅，跌越多越恐慌' },
+                  { label: 'CNN 恐贪指数', weight: '25%', desc: '0极度恐慌 → 100极度贪婪，手动录入' },
                 ].map(f => (
                   <div key={f.label} className="flex items-center justify-between text-[10px] font-mono">
                     <div>

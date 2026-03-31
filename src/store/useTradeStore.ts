@@ -51,7 +51,7 @@ export function useTradeStore() {
     setState(s => ({ ...s, trades: [newTrade, ...s.trades] }));
   }, []);
 
-  const closeTrade = useCallback((id: string, sellDate: string, sellPrice: number, sellReason: string) => {
+  const closeTrade = useCallback((id: string, sellDate: string, sellPrice: number, sellReason: string, _sellShares?: number) => {
     setState(s => ({
       ...s,
       trades: s.trades.map(t =>
