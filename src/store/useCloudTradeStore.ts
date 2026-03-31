@@ -107,12 +107,51 @@ export function useCloudTradeStore(user: User) {
     ));
   }, []);
 
-  const closeTrade = useCallback(async (id: string, sellDate: string, sellPrice: number, sellReason: string) => {
-    await supabase.from('trades').update({ sell_date: sellDate, sell_price: sellPrice, sell_reason: sellReason }).eq('id', id);
-    setTrades(prev => prev.map(t =>
-      t.id === id ? { ...t, sellDate, sellPrice, sellReason, updatedAt: new Date().toISOString() } : t
-    ));
-  }, []);
+  const closeTrade = useCallback(async (id: string, sellDate: string, sellPrice: number, sellReason: string, sellShares?: number) => {
+    const trade = trades.find(t => t.id === id);
+    if (!trade) return;
+    const qty = sellShares ?? trade.shares;
+    const isPartial = qty < trade.shares;
+
+    if (isPartial) {
+      // Partial close: reduce original trade shares, create a new closed trade for sold portion
+      const remaining = +(trade.shares - qty).toFixed(4);
+      await supabase.from('trades').update({ shares: remaining, updated_at: new Date().toISOString() }).eq('id', id);
+
+      const { data } = await supabase.from('trades').insert({
+        user_id: user.id, identity_id: trade.identityId, symbol: trade.symbol, name: trade.name,
+        direction: trade.direction, buy_date: trade.buyDate, buy_price: trade.buyPrice,
+        shares: qty, buy_reason: trade.buyReason, strategy: trade.strategy,
+        currency: trade.currency,
+        sell_date: sellDate, sell_price: sellPrice, sell_reason: sellReason,
+      } as any).select().single();
+
+      setTrades(prev => {
+        const updated = prev.map(t =>
+          t.id === id ? { ...t, shares: remaining, updatedAt: new Date().toISOString() } : t
+        );
+        if (data) {
+          const closed: Trade = {
+            id: data.id, identityId: data.identity_id, symbol: data.symbol, name: data.name,
+            direction: data.direction as TradeDirection, buyDate: data.buy_date,
+            buyPrice: Number(data.buy_price), shares: Number(data.shares),
+            buyReason: data.buy_reason ?? '', strategy: data.strategy as StrategyTag,
+            currency: ((data as any).currency as Currency) || 'CNY',
+            sellDate: data.sell_date, sellPrice: Number(data.sell_price), sellReason: data.sell_reason,
+            events: [], createdAt: data.created_at, updatedAt: data.updated_at,
+          };
+          updated.push(closed);
+        }
+        return updated;
+      });
+    } else {
+      // Full close
+      await supabase.from('trades').update({ sell_date: sellDate, sell_price: sellPrice, sell_reason: sellReason }).eq('id', id);
+      setTrades(prev => prev.map(t =>
+        t.id === id ? { ...t, sellDate, sellPrice, sellReason, updatedAt: new Date().toISOString() } : t
+      ));
+    }
+  }, [trades, user.id]);
 
   const deleteTrade = useCallback(async (id: string) => {
     await supabase.from('trades').delete().eq('id', id);

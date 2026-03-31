@@ -12,7 +12,7 @@ import { useState } from 'react';
 
 interface Props {
   trade: Trade;
-  onClose: (id: string, sellDate: string, sellPrice: number, sellReason: string) => void;
+  onClose: (id: string, sellDate: string, sellPrice: number, sellReason: string, sellShares?: number) => void;
   onUpdate: (id: string, updates: Partial<Pick<Trade, 'symbol' | 'name' | 'direction' | 'buyDate' | 'buyPrice' | 'shares' | 'buyReason' | 'strategy' | 'currency'>>) => void;
   onDelete: (id: string) => void;
   onAddEvent: (tradeId: string, event: Omit<TradeEvent, 'id'>) => void;
