@@ -70,6 +70,45 @@ export function useCloudTradeStore(user: User) {
     setTrades(prev => prev.filter(t => t.identityId !== id));
   }, [activeIdentityId]);
 
+  // Sync a symbol's aggregate position to ev_holdings
+  const syncToEvHolding = useCallback(async (symbol: string, name: string) => {
+    const { data: openTrades } = await supabase.from('trades')
+      .select('buy_price, shares')
+      .eq('user_id', user.id)
+      .eq('symbol', symbol)
+      .is('sell_date', null);
+
+    const rows = openTrades ?? [];
+    const totalShares = rows.reduce((s: number, t: any) => s + Number(t.shares), 0);
+    const totalCost = rows.reduce((s: number, t: any) => s + Number(t.buy_price) * Number(t.shares), 0);
+    const avgPrice = totalShares > 0 ? +(totalCost / totalShares).toFixed(4) : 0;
+
+    const { data: existing } = await supabase.from('ev_holdings' as any)
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('symbol', symbol)
+      .maybeSingle();
+
+    if (totalShares > 0) {
+      if (existing) {
+        await supabase.from('ev_holdings' as any).update({
+          shares: totalShares, avg_price: avgPrice, total_cost: +totalCost.toFixed(2),
+          is_closed: false, updated_at: new Date().toISOString(),
+        }).eq('id', existing.id);
+      } else {
+        await supabase.from('ev_holdings' as any).insert({
+          user_id: user.id, symbol, name, asset_type: 'stock',
+          shares: totalShares, avg_price: avgPrice, total_cost: +totalCost.toFixed(2),
+          status: 'watch',
+        });
+      }
+    } else if (existing) {
+      await supabase.from('ev_holdings' as any).update({
+        shares: 0, is_closed: true, updated_at: new Date().toISOString(),
+      }).eq('id', existing.id);
+    }
+  }, [user.id]);
+
   const addTrade = useCallback(async (trade: Omit<Trade, 'id' | 'events' | 'createdAt' | 'updatedAt'>) => {
     const { data } = await supabase.from('trades').insert({
       user_id: user.id, identity_id: trade.identityId, symbol: trade.symbol, name: trade.name,
@@ -87,8 +126,9 @@ export function useCloudTradeStore(user: User) {
         events: [], createdAt: data.created_at, updatedAt: data.updated_at,
       };
       setTrades(prev => [newTrade, ...prev]);
+      syncToEvHolding(trade.symbol, trade.name);
     }
-  }, [user.id]);
+  }, [user.id, syncToEvHolding]);
 
   const updateTrade = useCallback(async (id: string, updates: Partial<Pick<Trade, 'symbol' | 'name' | 'direction' | 'buyDate' | 'buyPrice' | 'shares' | 'buyReason' | 'strategy' | 'currency'>>) => {
     const dbUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
@@ -105,7 +145,20 @@ export function useCloudTradeStore(user: User) {
     setTrades(prev => prev.map(t =>
       t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
     ));
-  }, []);
+    // Sync if shares, price, or symbol changed
+    if (updates.shares !== undefined || updates.buyPrice !== undefined || updates.symbol !== undefined) {
+      const trade = trades.find(t => t.id === id);
+      if (trade) {
+        const sym = updates.symbol ?? trade.symbol;
+        const name = updates.name ?? trade.name;
+        syncToEvHolding(sym, name);
+        // If symbol changed, also sync the old symbol
+        if (updates.symbol && updates.symbol !== trade.symbol) {
+          syncToEvHolding(trade.symbol, trade.name);
+        }
+      }
+    }
+  }, [trades, syncToEvHolding]);
 
   const closeTrade = useCallback(async (id: string, sellDate: string, sellPrice: number, sellReason: string, sellShares?: number) => {
     const trade = trades.find(t => t.id === id);
@@ -144,19 +197,23 @@ export function useCloudTradeStore(user: User) {
         }
         return updated;
       });
+      syncToEvHolding(trade.symbol, trade.name);
     } else {
       // Full close
       await supabase.from('trades').update({ sell_date: sellDate, sell_price: sellPrice, sell_reason: sellReason }).eq('id', id);
       setTrades(prev => prev.map(t =>
         t.id === id ? { ...t, sellDate, sellPrice, sellReason, updatedAt: new Date().toISOString() } : t
       ));
+      syncToEvHolding(trade.symbol, trade.name);
     }
-  }, [trades, user.id]);
+  }, [trades, user.id, syncToEvHolding]);
 
   const deleteTrade = useCallback(async (id: string) => {
+    const trade = trades.find(t => t.id === id);
     await supabase.from('trades').delete().eq('id', id);
     setTrades(prev => prev.filter(t => t.id !== id));
-  }, []);
+    if (trade) syncToEvHolding(trade.symbol, trade.name);
+  }, [trades, syncToEvHolding]);
 
   const addEvent = useCallback(async (tradeId: string, event: Omit<TradeEvent, 'id'>) => {
     const { data } = await supabase.from('trade_events').insert({
