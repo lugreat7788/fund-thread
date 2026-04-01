@@ -3,6 +3,28 @@ import { supabase } from '@/integrations/supabase/client';
 import type { AppState, Trade, Identity, TradeEvent, TradeDirection, StrategyTag, EventType, ImpactLevel, Currency, MergedPosition } from '@/types/trade';
 import type { User } from '@supabase/supabase-js';
 
+// ─── Cash reserve tracking via localStorage ───
+const CASH_KEY = 'ev-cash-reserve';
+
+export function getEvCash(): number {
+  try {
+    const raw = localStorage.getItem(CASH_KEY);
+    return raw ? parseFloat(raw) || 0 : 0;
+  } catch { return 0; }
+}
+
+export function setEvCash(amount: number) {
+  localStorage.setItem(CASH_KEY, amount.toFixed(2));
+}
+
+export function addEvCash(amount: number) {
+  setEvCash(getEvCash() + amount);
+}
+
+export function subtractEvCash(amount: number) {
+  setEvCash(Math.max(0, getEvCash() - amount));
+}
+
 export function useCloudTradeStore(user: User) {
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -139,6 +161,7 @@ export function useCloudTradeStore(user: User) {
         events: [], createdAt: data.created_at, updatedAt: data.updated_at,
       };
       setTrades(prev => [newTrade, ...prev]);
+      subtractEvCash(trade.buyPrice * trade.shares);
       syncToEvHolding(trade.symbol, trade.name);
     }
   }, [user.id, syncToEvHolding]);
@@ -210,6 +233,7 @@ export function useCloudTradeStore(user: User) {
         }
         return updated;
       });
+      addEvCash(sellPrice * qty);
       syncToEvHolding(trade.symbol, trade.name);
     } else {
       // Full close
@@ -217,6 +241,7 @@ export function useCloudTradeStore(user: User) {
       setTrades(prev => prev.map(t =>
         t.id === id ? { ...t, sellDate, sellPrice, sellReason, updatedAt: new Date().toISOString() } : t
       ));
+      addEvCash(sellPrice * trade.shares);
       syncToEvHolding(trade.symbol, trade.name);
     }
   }, [trades, user.id, syncToEvHolding]);

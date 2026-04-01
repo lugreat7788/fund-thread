@@ -197,12 +197,15 @@ export function SentimentDashboard() {
   const [data, setData] = useState<SentimentData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [settings, setSettings] = useState<ManualSettings>(loadSettings);
   const [editingSettings, setEditingSettings] = useState(false);
   const [tempSettings, setTempSettings] = useState(settings);
 
   useEffect(() => { saveSettings(settings); }, [settings]);
+
+  // Auto-load market data on mount
+  useEffect(() => { load(); }, [load]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -266,16 +269,14 @@ export function SentimentDashboard() {
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-primary" />
           <span className="text-sm font-display font-semibold">市场情绪仪表盘</span>
+          <span className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${cfg.color} ${cfg.bg}`}>
+            {cfg.emoji} {cfg.label} · {composite.score}
+          </span>
           {data && (
-            <>
-              <span className={`text-xs font-mono font-semibold px-1.5 py-0.5 rounded ${cfg.color} ${cfg.bg}`}>
-                {cfg.emoji} {cfg.label} · {composite.score}
-              </span>
-              <span className={`flex items-center gap-1 text-[10px] font-mono ${stateInfo.color}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${stateInfo.dot} ${isLive ? 'animate-pulse' : ''}`} />
-                {stateInfo.text}
-              </span>
-            </>
+            <span className={`flex items-center gap-1 text-[10px] font-mono ${stateInfo.color}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${stateInfo.dot} ${isLive ? 'animate-pulse' : ''}`} />
+              {stateInfo.text}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -305,6 +306,127 @@ export function SentimentDashboard() {
             </div>
           )}
 
+          {/* 1. Core Indicator Cards - always show */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <CoreCard
+              label="纳斯达克 (QQQ)"
+              value={nasdaqQuote ? `$${nasdaqQuote.price.toFixed(1)}` : '--'}
+              sub={nasdaqDrop != null ? `距高点 ${nasdaqDrop.toFixed(1)}%` : '未设置高点'}
+              subColor={nasdaqDrop != null ? (nasdaqDrop < -10 ? 'text-loss' : nasdaqDrop < 0 ? 'text-[hsl(20,80%,55%)]' : 'text-profit') : undefined}
+            />
+            <CoreCard
+              label="标普500 (SPY)"
+              value={sp500Quote ? `$${sp500Quote.price.toFixed(1)}` : '--'}
+              sub={sp500Drop != null ? `距高点 ${sp500Drop.toFixed(1)}%` : '未设置高点'}
+              subColor={sp500Drop != null ? (sp500Drop < -10 ? 'text-loss' : sp500Drop < 0 ? 'text-[hsl(20,80%,55%)]' : 'text-profit') : undefined}
+            />
+            <CoreCard
+              label="VIX 恐慌指数"
+              value={vixQuote ? vixQuote.price.toFixed(1) : '--'}
+              sub={vixInfo ? vixInfo.text : '--'}
+              subColor={vixInfo?.color}
+              extra={vixQuote ? (
+                <div className="mt-0.5 h-1.5 rounded-full bg-secondary overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${vixQuote.price < 15 ? 'bg-profit' : vixQuote.price < 20 ? 'bg-muted-foreground' : vixQuote.price < 30 ? 'bg-[hsl(20,80%,55%)]' : 'bg-[hsl(0,80%,55%)]'}`}
+                    style={{ width: `${Math.min(100, (vixQuote.price / 50) * 100)}%` }}
+                  />
+                </div>
+              ) : undefined}
+            />
+            <CoreCard
+              label="CNN恐贪指数"
+              value={settings.cnnFearGreed.toString()}
+              sub={settings.cnnFearGreed <= 25 ? '极度恐慌' : settings.cnnFearGreed <= 45 ? '恐慌' : settings.cnnFearGreed <= 55 ? '中性' : settings.cnnFearGreed <= 75 ? '贪婪' : '极度贪婪'}
+              subColor={settings.cnnFearGreed <= 25 ? 'text-[hsl(0,80%,55%)]' : settings.cnnFearGreed <= 45 ? 'text-[hsl(20,80%,55%)]' : settings.cnnFearGreed <= 55 ? 'text-muted-foreground' : settings.cnnFearGreed <= 75 ? 'text-[hsl(142,70%,45%)]' : 'text-profit'}
+              extra={<div className="text-[9px] text-muted-foreground">手动录入</div>}
+            />
+          </div>
+
+          {/* 2. Composite Score + Gauge - always show */}
+          <div className={`rounded-xl p-4 border border-border ${cfg.bg}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">综合情绪评估</div>
+              <div className={`text-[10px] font-mono ${cfg.color}`}>
+                {data?.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '基于手动参数'}
+              </div>
+            </div>
+            <div className="flex items-end gap-3 mb-4">
+              <div className={`text-5xl font-display font-bold leading-none ${cfg.color}`}>
+                {composite.score}
+              </div>
+              <div className="pb-1">
+                <div className={`text-base font-display font-semibold ${cfg.color}`}>
+                  {cfg.emoji} {cfg.label}
+                </div>
+                <div className="text-[10px] text-muted-foreground font-mono">VIX(40%) + 距高点跌幅(35%) + CNN恐贪(25%)</div>
+              </div>
+            </div>
+            <GaugeBar score={composite.score} />
+            {/* Quick advice */}
+            <div className={`mt-3 flex items-start gap-2 p-2.5 rounded-lg border ${cfg.bg} border-border`}>
+              <span className="text-sm leading-none mt-0.5">💡</span>
+              <div>
+                <div className="text-[10px] text-muted-foreground font-mono mb-0.5">推荐操作</div>
+                <div className={`text-xs font-semibold ${cfg.color}`}>{cfg.advice}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Detailed Investment Advice - from API */}
+          {data?.advice && data.advice.length > 0 && (
+            <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-2">
+              <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                {isLive ? '实时投资建议' : '基于最新收盘数据的投资建议'}
+              </div>
+              {data.advice.map((tip, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs font-mono">
+                  <span className="text-primary mt-0.5 shrink-0">{tip.startsWith('建议') ? '👉' : tip.startsWith('注意') ? '⚠️' : '📊'}</span>
+                  <span className="text-foreground/80">{tip}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 4. Manual Settings - always show */}
+          <div className="bg-secondary/30 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">手动参数设置</div>
+              {!editingSettings ? (
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1" onClick={() => { setTempSettings(settings); setEditingSettings(true); }}>
+                  <Edit2 className="w-3 h-3" /> 编辑
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1 text-primary" onClick={handleSaveSettings}>
+                  <Check className="w-3 h-3" /> 保存
+                </Button>
+              )}
+            </div>
+            {editingSettings ? (
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[9px] text-muted-foreground">纳指(QQQ)历史高点</label>
+                  <Input className="h-7 text-xs" value={tempSettings.nasdaqATH} onChange={e => setTempSettings(p => ({ ...p, nasdaqATH: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="text-[9px] text-muted-foreground">标普(SPY)历史高点</label>
+                  <Input className="h-7 text-xs" value={tempSettings.sp500ATH} onChange={e => setTempSettings(p => ({ ...p, sp500ATH: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <label className="text-[9px] text-muted-foreground">CNN恐贪指数 (0-100)</label>
+                  <Input className="h-7 text-xs" value={tempSettings.cnnFearGreed} onChange={e => setTempSettings(p => ({ ...p, cnnFearGreed: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }))} />
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-4 text-[10px] font-mono text-muted-foreground">
+                <span>QQQ高点: ${settings.nasdaqATH}</span>
+                <span>SPY高点: ${settings.sp500ATH}</span>
+                <span>CNN: {settings.cnnFearGreed}</span>
+              </div>
+            )}
+          </div>
+
+          {/* 5. Market Sections - only when API data available */}
           {data && (
             <>
               {/* Market status bar */}
@@ -325,127 +447,6 @@ export function SentimentDashboard() {
                 </span>
               </div>
 
-              {/* 1. Core Indicator Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <CoreCard
-                  label="纳斯达克 (QQQ)"
-                  value={nasdaqQuote ? `$${nasdaqQuote.price.toFixed(1)}` : '--'}
-                  sub={nasdaqDrop != null ? `距高点 ${nasdaqDrop.toFixed(1)}%` : '未设置高点'}
-                  subColor={nasdaqDrop != null ? (nasdaqDrop < -10 ? 'text-loss' : nasdaqDrop < 0 ? 'text-[hsl(20,80%,55%)]' : 'text-profit') : undefined}
-                />
-                <CoreCard
-                  label="标普500 (SPY)"
-                  value={sp500Quote ? `$${sp500Quote.price.toFixed(1)}` : '--'}
-                  sub={sp500Drop != null ? `距高点 ${sp500Drop.toFixed(1)}%` : '未设置高点'}
-                  subColor={sp500Drop != null ? (sp500Drop < -10 ? 'text-loss' : sp500Drop < 0 ? 'text-[hsl(20,80%,55%)]' : 'text-profit') : undefined}
-                />
-                <CoreCard
-                  label="VIX 恐慌指数"
-                  value={vixQuote ? vixQuote.price.toFixed(1) : '--'}
-                  sub={vixInfo ? vixInfo.text : '--'}
-                  subColor={vixInfo?.color}
-                  extra={vixQuote ? (
-                    <div className="mt-0.5 h-1.5 rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${vixQuote.price < 15 ? 'bg-profit' : vixQuote.price < 20 ? 'bg-muted-foreground' : vixQuote.price < 30 ? 'bg-[hsl(20,80%,55%)]' : 'bg-[hsl(0,80%,55%)]'}`}
-                        style={{ width: `${Math.min(100, (vixQuote.price / 50) * 100)}%` }}
-                      />
-                    </div>
-                  ) : undefined}
-                />
-                <CoreCard
-                  label="CNN恐贪指数"
-                  value={settings.cnnFearGreed.toString()}
-                  sub={settings.cnnFearGreed <= 25 ? '极度恐慌' : settings.cnnFearGreed <= 45 ? '恐慌' : settings.cnnFearGreed <= 55 ? '中性' : settings.cnnFearGreed <= 75 ? '贪婪' : '极度贪婪'}
-                  subColor={settings.cnnFearGreed <= 25 ? 'text-[hsl(0,80%,55%)]' : settings.cnnFearGreed <= 45 ? 'text-[hsl(20,80%,55%)]' : settings.cnnFearGreed <= 55 ? 'text-muted-foreground' : settings.cnnFearGreed <= 75 ? 'text-[hsl(142,70%,45%)]' : 'text-profit'}
-                  extra={<div className="text-[9px] text-muted-foreground">手动录入</div>}
-                />
-              </div>
-
-              {/* 2. Composite Score + Gauge */}
-              <div className={`rounded-xl p-4 border border-border ${cfg.bg}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">综合情绪评估</div>
-                  <div className={`text-[10px] font-mono ${cfg.color}`}>
-                    {data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''}
-                  </div>
-                </div>
-                <div className="flex items-end gap-3 mb-4">
-                  <div className={`text-5xl font-display font-bold leading-none ${cfg.color}`}>
-                    {composite.score}
-                  </div>
-                  <div className="pb-1">
-                    <div className={`text-base font-display font-semibold ${cfg.color}`}>
-                      {cfg.emoji} {cfg.label}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground font-mono">VIX(40%) + 距高点跌幅(35%) + CNN恐贪(25%)</div>
-                  </div>
-                </div>
-                <GaugeBar score={composite.score} />
-                {/* Quick advice */}
-                <div className={`mt-3 flex items-start gap-2 p-2.5 rounded-lg border ${cfg.bg} border-border`}>
-                  <span className="text-sm leading-none mt-0.5">💡</span>
-                  <div>
-                    <div className="text-[10px] text-muted-foreground font-mono mb-0.5">推荐操作</div>
-                    <div className={`text-xs font-semibold ${cfg.color}`}>{cfg.advice}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Detailed Investment Advice */}
-              {data.advice && data.advice.length > 0 && (
-                <div className="rounded-xl border border-border bg-secondary/20 p-4 space-y-2">
-                  <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-                    {isLive ? '实时投资建议' : '基于最新收盘数据的投资建议'}
-                  </div>
-                  {data.advice.map((tip, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs font-mono">
-                      <span className="text-primary mt-0.5 shrink-0">{tip.startsWith('建议') ? '👉' : tip.startsWith('注意') ? '⚠️' : '📊'}</span>
-                      <span className="text-foreground/80">{tip}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 4. Manual Settings */}
-              <div className="bg-secondary/30 rounded-xl p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">手动参数设置</div>
-                  {!editingSettings ? (
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1" onClick={() => { setTempSettings(settings); setEditingSettings(true); }}>
-                      <Edit2 className="w-3 h-3" /> 编辑
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1 text-primary" onClick={handleSaveSettings}>
-                      <Check className="w-3 h-3" /> 保存
-                    </Button>
-                  )}
-                </div>
-                {editingSettings ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">纳指(QQQ)历史高点</label>
-                      <Input className="h-7 text-xs" value={tempSettings.nasdaqATH} onChange={e => setTempSettings(p => ({ ...p, nasdaqATH: parseFloat(e.target.value) || 0 }))} />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">标普(SPY)历史高点</label>
-                      <Input className="h-7 text-xs" value={tempSettings.sp500ATH} onChange={e => setTempSettings(p => ({ ...p, sp500ATH: parseFloat(e.target.value) || 0 }))} />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">CNN恐贪指数 (0-100)</label>
-                      <Input className="h-7 text-xs" value={tempSettings.cnnFearGreed} onChange={e => setTempSettings(p => ({ ...p, cnnFearGreed: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }))} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex gap-4 text-[10px] font-mono text-muted-foreground">
-                    <span>QQQ高点: ${settings.nasdaqATH}</span>
-                    <span>SPY高点: ${settings.sp500ATH}</span>
-                    <span>CNN: {settings.cnnFearGreed}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* 5. Market Sections */}
               {data.cnIndices.length > 0 && (
                 <section>
                   <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">A股主要指数</div>
@@ -490,26 +491,26 @@ export function SentimentDashboard() {
                   </div>
                 </section>
               )}
-
-              {/* 6. Scoring factors */}
-              <section className="bg-secondary/30 rounded-xl p-3 space-y-1.5">
-                <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">综合评分因子</div>
-                {[
-                  { label: 'VIX 恐慌指数', weight: '40%', desc: '<15极度贪婪 / 15-20正常 / 20-30警惕 / >30恐慌' },
-                  { label: '距历史高点跌幅', weight: '35%', desc: '纳指+标普平均跌幅，跌越多越恐慌' },
-                  { label: 'CNN 恐贪指数', weight: '25%', desc: '0极度恐慌 → 100极度贪婪，手动录入' },
-                ].map(f => (
-                  <div key={f.label} className="flex items-center justify-between text-[10px] font-mono">
-                    <div>
-                      <span className="text-foreground/80">{f.label}</span>
-                      <span className="text-muted-foreground ml-1.5">{f.desc}</span>
-                    </div>
-                    <span className="text-primary shrink-0 ml-2">{f.weight}</span>
-                  </div>
-                ))}
-              </section>
             </>
           )}
+
+          {/* 6. Scoring factors - always show */}
+          <section className="bg-secondary/30 rounded-xl p-3 space-y-1.5">
+            <div className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider mb-2">综合评分因子</div>
+            {[
+              { label: 'VIX 恐慌指数', weight: '40%', desc: '<15极度贪婪 / 15-20正常 / 20-30警惕 / >30恐慌' },
+              { label: '距历史高点跌幅', weight: '35%', desc: '纳指+标普平均跌幅，跌越多越恐慌' },
+              { label: 'CNN 恐贪指数', weight: '25%', desc: '0极度恐慌 → 100极度贪婪，手动录入' },
+            ].map(f => (
+              <div key={f.label} className="flex items-center justify-between text-[10px] font-mono">
+                <div>
+                  <span className="text-foreground/80">{f.label}</span>
+                  <span className="text-muted-foreground ml-1.5">{f.desc}</span>
+                </div>
+                <span className="text-primary shrink-0 ml-2">{f.weight}</span>
+              </div>
+            ))}
+          </section>
         </div>
       )}
     </div>
