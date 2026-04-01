@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Download, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { RefreshCw, Download, Plus, Edit2, Check } from 'lucide-react';
 import type { useEvStore } from '@/store/useEvStore';
+import { getEvCash, setEvCash } from '@/store/useCloudTradeStore';
 
 const STATUS_CONFIG = {
   safe: { label: '✅ 持有安全', cls: 'text-profit' },
@@ -14,7 +16,18 @@ const PIE_COLORS = ['hsl(45,90%,55%)', 'hsl(142,70%,45%)', 'hsl(200,70%,50%)', '
 
 export function PortfolioDashboard({ store }: { store: ReturnType<typeof useEvStore> }) {
   const h = store.holdings;
-  const cashUsd = 140; // ¥1000 ≈ $140
+  const [cashUsd, setCashUsd] = useState(() => getEvCash() || 140);
+  const [editingCash, setEditingCash] = useState(false);
+  const [tempCash, setTempCash] = useState(cashUsd);
+
+  // Re-read cash from localStorage periodically (in case trades update it)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stored = getEvCash();
+      if (stored > 0) setCashUsd(stored);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   const totalValue = useMemo(() =>
     h.reduce((s, x) => s + (x.currentPrice ? x.currentPrice * x.shares : x.totalCost), 0) + cashUsd, [h, cashUsd]);
@@ -140,12 +153,35 @@ export function PortfolioDashboard({ store }: { store: ReturnType<typeof useEvSt
           </div>
 
           {/* Cash */}
-          <div className="bg-card rounded-xl p-3 border border-border flex items-center justify-between">
-            <div>
+          <div className="bg-card rounded-xl p-3 border border-border space-y-1">
+            <div className="flex items-center justify-between">
               <div className="text-sm font-display font-semibold">💵 现金储备</div>
-              <div className="text-[10px] text-muted-foreground font-mono">¥1,000 ≈ $140</div>
+              {!editingCash ? (
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1" onClick={() => { setTempCash(cashUsd); setEditingCash(true); }}>
+                  <Edit2 className="w-3 h-3" /> 调整
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1 text-primary" onClick={() => {
+                  setCashUsd(tempCash);
+                  setEvCash(tempCash);
+                  setEditingCash(false);
+                }}>
+                  <Check className="w-3 h-3" /> 保存
+                </Button>
+              )}
             </div>
-            <div className="text-sm font-mono text-primary">{((cashUsd / totalValue) * 100).toFixed(1)}%</div>
+            {editingCash ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">$</span>
+                <Input className="h-7 text-xs w-32" type="number" value={tempCash} onChange={e => setTempCash(parseFloat(e.target.value) || 0)} />
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="text-lg font-mono font-bold text-primary">${cashUsd.toFixed(0)}</div>
+                <div className="text-sm font-mono text-muted-foreground">{((cashUsd / totalValue) * 100).toFixed(1)}%</div>
+              </div>
+            )}
+            <div className="text-[10px] text-muted-foreground font-mono">平仓收益自动累加 · 建仓自动扣减</div>
           </div>
         </>
       )}
