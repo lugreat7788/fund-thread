@@ -204,9 +204,6 @@ export function SentimentDashboard() {
 
   useEffect(() => { saveSettings(settings); }, [settings]);
 
-  // Auto-load market data on mount
-  useEffect(() => { load(); }, [load]);
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -221,6 +218,9 @@ export function SentimentDashboard() {
       setLoading(false);
     }
   }, []);
+
+  // Auto-load market data on mount
+  useEffect(() => { load(); }, [load]);
 
   const handleToggle = () => {
     if (!open) {

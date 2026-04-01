@@ -44,7 +44,7 @@ export function PortfolioDashboard({ store }: { store: ReturnType<typeof useEvSt
     }));
     items.push({ name: '现金', value: cashUsd });
     return items;
-  }, [h]);
+  }, [h, cashUsd]);
 
   return (
     <div className="space-y-4">
