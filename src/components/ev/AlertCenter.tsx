@@ -322,7 +322,13 @@ function AlertSettings({ alert }: { alert: ReturnType<typeof useAlertStore> }) {
         ].map(f => (
           <div key={f.key} className="flex items-center justify-between">
             <span className="text-sm">{f.label}</span>
-            <Switch checked={(s as any)[f.key]} onCheckedChange={v => update(f.key as keyof AlertSettingsType, v)} />
+            <Switch checked={(s as any)[f.key]} onCheckedChange={async v => {
+              if (f.key === 'browserNotifyEnabled' && v) {
+                const granted = await requestNotificationPermission();
+                if (!granted) { toast.error('浏览器通知权限被拒绝，请在浏览器设置中允许'); return; }
+              }
+              update(f.key as keyof AlertSettingsType, v);
+            }} />
           </div>
         ))}
         <div className="flex items-center gap-2 pt-2">
