@@ -57,6 +57,7 @@ export interface AlertRecord {
 const DEFAULT_SETTINGS: AlertSettings = {
   emailjsServiceId: '', emailjsTemplateId: '', emailjsPublicKey: '', receiverEmail: '',
   nodeAlertEnabled: true, panicAlertEnabled: true, earningsAlertEnabled: true, dcaAlertEnabled: true,
+  browserNotifyEnabled: true,
   silentStart: 23, silentEnd: 8, dcaDay: 1,
   vixLevel1: 20, vixLevel2: 25, vixLevel3: 30,
   nasdaqDropTrigger: 15, fearGreedTrigger: 30,
