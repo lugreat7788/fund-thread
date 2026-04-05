@@ -10,7 +10,8 @@ import { MonthlyReview } from '@/components/ev/MonthlyReview';
 import { ErrorLog } from '@/components/ev/ErrorLog';
 import { AuthPage } from '@/components/AuthPage';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Briefcase, Target, ShoppingCart, Wallet, FileText, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, Briefcase, Target, ShoppingCart, Wallet, FileText, AlertTriangle, Bell } from 'lucide-react';
+import { AlertCenter } from '@/components/ev/AlertCenter';
 import type { User } from '@supabase/supabase-js';
 
 const TABS = [
