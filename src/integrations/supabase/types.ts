@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ev_alert_history: {
+        Row: {
+          alert_type: string
+          content: string
+          created_at: string
+          email_sent: boolean
+          id: string
+          is_read: boolean
+          title: string
+          trigger_reason: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          content: string
+          created_at?: string
+          email_sent?: boolean
+          id?: string
+          is_read?: boolean
+          title: string
+          trigger_reason?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          content?: string
+          created_at?: string
+          email_sent?: boolean
+          id?: string
+          is_read?: boolean
+          title?: string
+          trigger_reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ev_dca_records: {
         Row: {
           amount: number
@@ -156,6 +192,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ev_earnings_calendar: {
+        Row: {
+          created_at: string
+          earnings_date: string
+          id: string
+          name: string
+          notes: string | null
+          remind_0d: boolean
+          remind_1d: boolean
+          remind_7d: boolean
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          earnings_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          remind_0d?: boolean
+          remind_1d?: boolean
+          remind_7d?: boolean
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          earnings_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          remind_0d?: boolean
+          remind_1d?: boolean
+          remind_7d?: boolean
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       ev_errors: {
         Row: {
