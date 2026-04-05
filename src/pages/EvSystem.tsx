@@ -65,6 +65,7 @@ function EvDashboard({ user }: { user: User }) {
           {tab === 'dca' && <DcaPlan store={store} />}
           {tab === 'review' && <MonthlyReview store={store} />}
           {tab === 'errors' && <ErrorLog store={store} />}
+          {tab === 'alerts' && <AlertCenter store={store} />}
         </div>
       </main>
 
