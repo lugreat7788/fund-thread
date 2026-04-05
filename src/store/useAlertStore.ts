@@ -258,10 +258,14 @@ export async function runAlertCheck(
     });
   }
 
-  // Save alerts and send emails
+  // Save alerts, send emails, and push browser notifications
   const db = (t: string) => supabase.from(t as any);
   for (const a of alerts) {
     const emailSent = await sendEmail(settings, a.title, a.content);
+    // Browser notification for node triggers and market panic
+    if (a.type === 'node_trigger' || a.type === 'market_panic') {
+      sendBrowserNotification(a.title, a.content);
+    }
     await db('ev_alert_history').insert({
       user_id: userId, alert_type: a.type, title: a.title,
       content: a.content, trigger_reason: a.reason, email_sent: emailSent,
