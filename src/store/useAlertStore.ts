@@ -265,7 +265,7 @@ export async function runAlertCheck(
   for (const a of alerts) {
     const emailSent = await sendEmail(settings, a.title, a.content);
     // Browser notification for node triggers and market panic
-    if (a.type === 'node_trigger' || a.type === 'market_panic') {
+    if (settings.browserNotifyEnabled && (a.type === 'node_trigger' || a.type === 'market_panic')) {
       sendBrowserNotification(a.title, a.content);
     }
     await db('ev_alert_history').insert({
