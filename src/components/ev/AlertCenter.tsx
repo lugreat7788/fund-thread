@@ -30,13 +30,15 @@ function AlertCenterContent({ userId, store }: { userId: string; store: ReturnTy
   const alert = useAlertStore(userId);
   const [checking, setChecking] = useState(false);
   const [tab, setTab] = useState('dashboard');
+  const hasAutoChecked = useRef(false);
 
-  // Auto-check on mount
+  // Auto-check once on mount (not on every re-render)
   useEffect(() => {
-    if (!alert.loading && store.holdings.length > 0) {
+    if (!alert.loading && store.holdings.length > 0 && !hasAutoChecked.current) {
+      hasAutoChecked.current = true;
       handleCheck();
     }
-  }, [alert.loading]);
+  }, [alert.loading, store.holdings.length]);
 
   const handleCheck = async () => {
     setChecking(true);
