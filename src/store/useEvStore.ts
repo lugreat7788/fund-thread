@@ -343,6 +343,6 @@ export function useEvStore(user: User) {
     addHolding, updateHolding, deleteHolding,
     addDecision, addDcaRecord, addReview,
     addError, revokeError,
-    refreshPrices, initializeDefaults, reload: loadData,
+    refreshPrices, initializeDefaults, reload: loadData, syncFromTrades,
   };
 }
