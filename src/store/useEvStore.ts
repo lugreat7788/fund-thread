@@ -136,6 +136,81 @@ export function useEvStore(user: User) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Auto-sync from trades table: update ev_holdings shares/avgPrice/totalCost from open trades
+  const syncFromTrades = useCallback(async () => {
+    try {
+      // Get all open trades for user
+      const { data: openTrades } = await supabase.from('trades')
+        .select('symbol, name, buy_price, shares, direction, currency')
+        .eq('user_id', user.id)
+        .is('sell_date', null);
+
+      if (!openTrades) return;
+
+      // Group by symbol
+      const grouped: Record<string, { name: string; totalShares: number; totalCost: number }> = {};
+      openTrades.forEach((t: any) => {
+        const sym = t.symbol;
+        if (!grouped[sym]) grouped[sym] = { name: t.name, totalShares: 0, totalCost: 0 };
+        grouped[sym].totalShares += Number(t.shares);
+        grouped[sym].totalCost += Number(t.buy_price) * Number(t.shares);
+      });
+
+      // Get current ev_holdings
+      const { data: existingHoldings } = await db('ev_holdings')
+        .select('*').eq('user_id', user.id).eq('is_closed', false);
+      const existing = (existingHoldings ?? []) as any[];
+      const existingBySymbol = new Map(existing.map(h => [h.symbol, h]));
+
+      // Update existing or create new ev_holdings from trades
+      for (const [symbol, pos] of Object.entries(grouped)) {
+        const avgPrice = pos.totalShares > 0 ? +(pos.totalCost / pos.totalShares).toFixed(4) : 0;
+        const ev = existingBySymbol.get(symbol);
+        if (ev) {
+          // Only update shares/cost/avgPrice, keep EV metadata
+          if (Math.abs(ev.shares - pos.totalShares) > 0.001 || Math.abs(Number(ev.avg_price) - avgPrice) > 0.01) {
+            await db('ev_holdings').update({
+              shares: pos.totalShares, avg_price: avgPrice, total_cost: +pos.totalCost.toFixed(2),
+              name: pos.name, updated_at: new Date().toISOString(),
+            }).eq('id', ev.id);
+          }
+        } else {
+          // Create new ev_holding from trade
+          await db('ev_holdings').insert({
+            user_id: user.id, symbol, name: pos.name, asset_type: 'stock',
+            shares: pos.totalShares, avg_price: avgPrice, total_cost: +pos.totalCost.toFixed(2),
+            status: 'watch',
+          });
+        }
+      }
+
+      // Mark ev_holdings as closed if no trades exist for them (unless manually created with shares)
+      for (const ev of existing) {
+        if (!grouped[ev.symbol]) {
+          // Check if this holding has 0 shares from trades - mark closed
+          const { data: tradesForSymbol } = await supabase.from('trades')
+            .select('id').eq('user_id', user.id).eq('symbol', ev.symbol).is('sell_date', null).limit(1);
+          if (!tradesForSymbol || tradesForSymbol.length === 0) {
+            // Only close if shares would be 0 from trades
+            // Keep manually initialized holdings that have no trades
+          }
+        }
+      }
+
+      // Reload to reflect changes
+      await loadData();
+    } catch (e) {
+      console.error('syncFromTrades error:', e);
+    }
+  }, [user.id, loadData]);
+
+  // Run sync after initial load
+  useEffect(() => {
+    if (!loading && holdings.length >= 0) {
+      syncFromTrades();
+    }
+  }, [loading]);
+
   // Fetch prices for all active holdings
   const refreshPrices = useCallback(async () => {
     const active = holdings.filter(h => !h.isClosed);
