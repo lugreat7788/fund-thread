@@ -117,6 +117,7 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [high52w, setHigh52w] = useState(holding.high52w?.toString() ?? holding.recentHigh?.toString() ?? '');
   const [recentHigh, setRecentHigh] = useState(holding.recentHigh?.toString() ?? '');
   const [s1, setS1] = useState(holding.sellTier1Price?.toString() ?? '');
   const [s2, setS2] = useState(holding.sellTier2Price?.toString() ?? '');
@@ -124,8 +125,10 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
 
   const handleSave = () => {
     const rh = parseFloat(recentHigh) || undefined;
+    const h52 = parseFloat(high52w) || undefined;
     onSave(holding.id, {
       recentHigh: rh,
+      high52w: h52,
       buyTier1Price: rh ? +(rh * 0.85).toFixed(2) : undefined,
       buyTier2Price: rh ? +(rh * 0.75).toFixed(2) : undefined,
       buyTier3Price: rh ? +(rh * 0.65).toFixed(2) : undefined,
@@ -167,7 +170,19 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
 
       {open && (
         <div className="px-3 pb-3 space-y-2">
+          {/* 52-week high and drawdown info */}
+          {holding.high52w && (
+            <div className="flex items-center justify-between bg-secondary/20 rounded-lg px-2 py-1.5 text-[10px] font-mono">
+              <span className="text-muted-foreground">52周收盘高点：<span className="text-foreground font-semibold">${holding.high52w.toFixed(2)}</span></span>
+              {cur && (
+                <span className={`font-semibold ${cur < holding.high52w ? 'text-loss' : 'text-profit'}`}>
+                  当前回撤：{((1 - cur / holding.high52w) * 100).toFixed(1)}%
+                </span>
+              )}
+            </div>
+          )}
           <div className="text-[10px] font-mono text-primary">📉 三档买入节点</div>
+          <div className="text-[10px] text-muted-foreground/60 -mt-1">基于个股52周收盘高点回撤</div>
           <NodeRow label="第一档 (-15%)" price={holding.buyTier1Price} current={cur} done={false} color="hsl(45,90%,55%)"
             type="buy" isNextTarget={holding.buyTier1Price === nextTargetPrice}
             sharesInfo={buyShares.tier1 ? `买入 ${buyShares.tier1.shares}股（预计 ¥${Math.round(buyShares.tier1.cost * EXCHANGE_RATE)}）` : undefined} />
@@ -200,7 +215,11 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-muted-foreground">近期高点</label>
+                    <label className="text-[10px] text-muted-foreground">52周收盘高点</label>
+                    <Input value={high52w} onChange={e => setHigh52w(e.target.value)} className="h-7 text-xs" placeholder="52周高点" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">近期高点（算节点）</label>
                     <Input value={recentHigh} onChange={e => setRecentHigh(e.target.value)} className="h-7 text-xs" placeholder="高点价格" />
                   </div>
                 </div>

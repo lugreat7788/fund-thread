@@ -11,6 +11,7 @@ export interface EvHolding {
   sellTier1Price?: number; sellTier2Price?: number; sellTier3Price?: number;
   sellTier1Done: boolean; sellTier2Done: boolean; sellTier3Done: boolean;
   isClosed: boolean; disposalPlan?: string;
+  high52w?: number;
   currentPrice?: number; changePct?: number;
   createdAt: string; updatedAt: string;
 }
@@ -74,6 +75,7 @@ export function useEvStore(user: User) {
     id: r.id, symbol: r.symbol, name: r.name, assetType: r.asset_type,
     avgPrice: Number(r.avg_price), shares: Number(r.shares), totalCost: Number(r.total_cost),
     status: r.status, notes: r.notes, recentHigh: r.recent_high ? Number(r.recent_high) : undefined,
+    high52w: r.high_52w ? Number(r.high_52w) : undefined,
     buyTier1Price: r.buy_tier1_price ? Number(r.buy_tier1_price) : undefined,
     buyTier2Price: r.buy_tier2_price ? Number(r.buy_tier2_price) : undefined,
     buyTier3Price: r.buy_tier3_price ? Number(r.buy_tier3_price) : undefined,
@@ -251,7 +253,8 @@ export function useEvStore(user: User) {
     const fieldMap: Record<string, string> = {
       symbol: 'symbol', name: 'name', assetType: 'asset_type', avgPrice: 'avg_price',
       shares: 'shares', totalCost: 'total_cost', status: 'status', notes: 'notes',
-      recentHigh: 'recent_high', buyTier1Price: 'buy_tier1_price', buyTier2Price: 'buy_tier2_price',
+      recentHigh: 'recent_high', high52w: 'high_52w',
+      buyTier1Price: 'buy_tier1_price', buyTier2Price: 'buy_tier2_price',
       buyTier3Price: 'buy_tier3_price', sellTier1Price: 'sell_tier1_price', sellTier2Price: 'sell_tier2_price',
       sellTier3Price: 'sell_tier3_price', sellTier1Done: 'sell_tier1_done', sellTier2Done: 'sell_tier2_done',
       sellTier3Done: 'sell_tier3_done', isClosed: 'is_closed', disposalPlan: 'disposal_plan',

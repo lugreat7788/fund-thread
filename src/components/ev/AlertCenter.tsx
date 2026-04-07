@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Send, Plus, Trash2, Bell, Settings, Calendar, Activity, Check } from 'lucide-react';
+import { RefreshCw, Send, Plus, Trash2, Bell, Settings, Calendar, Activity, Check, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAlertStore, getSentimentLevel, requestNotificationPermission, type AlertSettings, type MarketSentiment, type EarningsEvent } from '@/store/useAlertStore';
 import type { useEvStore } from '@/store/useEvStore';
@@ -139,12 +139,22 @@ function SentimentDashboard({ alert }: { alert: ReturnType<typeof useAlertStore>
         <div className="grid grid-cols-2 gap-3">
           {[
             { key: 'vix', label: 'VIX 恐慌指数', warn: values.vix > alert.settings.vixLevel2 },
-            { key: 'nasdaqDrop', label: '纳指跌幅 %', warn: values.nasdaqDrop > alert.settings.nasdaqDropTrigger },
-            { key: 'sp500Drop', label: '标普跌幅 %', warn: values.sp500Drop > 15 },
+            { key: 'nasdaqDrop', label: '纳指跌幅 %', warn: values.nasdaqDrop > alert.settings.nasdaqDropTrigger, hint: '基于纳指52周收盘高点回撤' },
+            { key: 'sp500Drop', label: '标普跌幅 %', warn: values.sp500Drop > 15, hint: '基于标普52周收盘高点回撤' },
             { key: 'fearGreed', label: '恐贪指数 (0-100)', warn: values.fearGreed < alert.settings.fearGreedTrigger },
           ].map(f => (
             <div key={f.key}>
-              <label className="text-xs text-muted-foreground">{f.label}</label>
+              <div className="flex items-center gap-1">
+                <label className="text-xs text-muted-foreground">{f.label}</label>
+                {(f as any).hint && (
+                  <span className="group relative">
+                    <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-[10px] rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      {(f as any).hint}
+                    </span>
+                  </span>
+                )}
+              </div>
               <Input
                 type="number"
                 value={values[f.key as keyof MarketSentiment] as number}
@@ -354,12 +364,24 @@ function AlertSettings({ alert }: { alert: ReturnType<typeof useAlertStore> }) {
           { key: 'vixLevel1', label: 'VIX 级别一（关注）' },
           { key: 'vixLevel2', label: 'VIX 级别二（机会）' },
           { key: 'vixLevel3', label: 'VIX 级别三（黄金坑）' },
-          { key: 'nasdaqDropTrigger', label: '纳指跌幅触发线 %' },
+          { key: 'nasdaqDropTrigger', label: '纳指跌幅触发线 %', hint: '基于纳指52周收盘高点回撤' },
           { key: 'fearGreedTrigger', label: '恐贪指数触发线' },
         ].map(f => (
-          <div key={f.key} className="flex items-center justify-between">
-            <span className="text-xs">{f.label}</span>
-            <Input type="number" value={(s as any)[f.key]} onChange={e => update(f.key as keyof AlertSettingsType, Number(e.target.value))} className="h-7 w-16 text-xs text-center" />
+          <div key={f.key}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                <span className="text-xs">{f.label}</span>
+                {(f as any).hint && (
+                  <span className="group relative">
+                    <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-[10px] rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      {(f as any).hint}
+                    </span>
+                  </span>
+                )}
+              </div>
+              <Input type="number" value={(s as any)[f.key]} onChange={e => update(f.key as keyof AlertSettingsType, Number(e.target.value))} className="h-7 w-16 text-xs text-center" />
+            </div>
           </div>
         ))}
       </div>
