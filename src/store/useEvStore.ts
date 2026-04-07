@@ -75,6 +75,7 @@ export function useEvStore(user: User) {
     id: r.id, symbol: r.symbol, name: r.name, assetType: r.asset_type,
     avgPrice: Number(r.avg_price), shares: Number(r.shares), totalCost: Number(r.total_cost),
     status: r.status, notes: r.notes, recentHigh: r.recent_high ? Number(r.recent_high) : undefined,
+    high52w: r.high_52w ? Number(r.high_52w) : undefined,
     buyTier1Price: r.buy_tier1_price ? Number(r.buy_tier1_price) : undefined,
     buyTier2Price: r.buy_tier2_price ? Number(r.buy_tier2_price) : undefined,
     buyTier3Price: r.buy_tier3_price ? Number(r.buy_tier3_price) : undefined,
