@@ -204,9 +204,11 @@ export function useEvStore(user: User) {
     }
   }, [user.id, loadData]);
 
-  // Run sync after initial load
+  // Run sync once after initial load
+  const hasSynced = useRef(false);
   useEffect(() => {
-    if (!loading && holdings.length >= 0) {
+    if (!loading && !hasSynced.current) {
+      hasSynced.current = true;
       syncFromTrades();
     }
   }, [loading]);
