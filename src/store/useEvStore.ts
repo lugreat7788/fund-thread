@@ -253,7 +253,8 @@ export function useEvStore(user: User) {
     const fieldMap: Record<string, string> = {
       symbol: 'symbol', name: 'name', assetType: 'asset_type', avgPrice: 'avg_price',
       shares: 'shares', totalCost: 'total_cost', status: 'status', notes: 'notes',
-      recentHigh: 'recent_high', buyTier1Price: 'buy_tier1_price', buyTier2Price: 'buy_tier2_price',
+      recentHigh: 'recent_high', high52w: 'high_52w',
+      buyTier1Price: 'buy_tier1_price', buyTier2Price: 'buy_tier2_price',
       buyTier3Price: 'buy_tier3_price', sellTier1Price: 'sell_tier1_price', sellTier2Price: 'sell_tier2_price',
       sellTier3Price: 'sell_tier3_price', sellTier1Done: 'sell_tier1_done', sellTier2Done: 'sell_tier2_done',
       sellTier3Done: 'sell_tier3_done', isClosed: 'is_closed', disposalPlan: 'disposal_plan',
