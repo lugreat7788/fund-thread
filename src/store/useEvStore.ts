@@ -11,6 +11,7 @@ export interface EvHolding {
   sellTier1Price?: number; sellTier2Price?: number; sellTier3Price?: number;
   sellTier1Done: boolean; sellTier2Done: boolean; sellTier3Done: boolean;
   isClosed: boolean; disposalPlan?: string;
+  high52w?: number;
   currentPrice?: number; changePct?: number;
   createdAt: string; updatedAt: string;
 }
