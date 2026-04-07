@@ -144,7 +144,17 @@ function SentimentDashboard({ alert }: { alert: ReturnType<typeof useAlertStore>
             { key: 'fearGreed', label: '恐贪指数 (0-100)', warn: values.fearGreed < alert.settings.fearGreedTrigger },
           ].map(f => (
             <div key={f.key}>
-              <label className="text-xs text-muted-foreground">{f.label}</label>
+              <div className="flex items-center gap-1">
+                <label className="text-xs text-muted-foreground">{f.label}</label>
+                {(f as any).hint && (
+                  <span className="group relative">
+                    <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-[10px] rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      {(f as any).hint}
+                    </span>
+                  </span>
+                )}
+              </div>
               <Input
                 type="number"
                 value={values[f.key as keyof MarketSentiment] as number}
