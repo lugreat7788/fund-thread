@@ -125,8 +125,10 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
 
   const handleSave = () => {
     const rh = parseFloat(recentHigh) || undefined;
+    const h52 = parseFloat(high52w) || undefined;
     onSave(holding.id, {
       recentHigh: rh,
+      high52w: h52,
       buyTier1Price: rh ? +(rh * 0.85).toFixed(2) : undefined,
       buyTier2Price: rh ? +(rh * 0.75).toFixed(2) : undefined,
       buyTier3Price: rh ? +(rh * 0.65).toFixed(2) : undefined,
