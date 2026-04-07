@@ -167,7 +167,19 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
 
       {open && (
         <div className="px-3 pb-3 space-y-2">
+          {/* 52-week high and drawdown info */}
+          {holding.high52w && (
+            <div className="flex items-center justify-between bg-secondary/20 rounded-lg px-2 py-1.5 text-[10px] font-mono">
+              <span className="text-muted-foreground">52周收盘高点：<span className="text-foreground font-semibold">${holding.high52w.toFixed(2)}</span></span>
+              {cur && (
+                <span className={`font-semibold ${cur < holding.high52w ? 'text-loss' : 'text-profit'}`}>
+                  当前回撤：{((1 - cur / holding.high52w) * 100).toFixed(1)}%
+                </span>
+              )}
+            </div>
+          )}
           <div className="text-[10px] font-mono text-primary">📉 三档买入节点</div>
+          <div className="text-[10px] text-muted-foreground/60 -mt-1">基于个股52周收盘高点回撤</div>
           <NodeRow label="第一档 (-15%)" price={holding.buyTier1Price} current={cur} done={false} color="hsl(45,90%,55%)"
             type="buy" isNextTarget={holding.buyTier1Price === nextTargetPrice}
             sharesInfo={buyShares.tier1 ? `买入 ${buyShares.tier1.shares}股（预计 ¥${Math.round(buyShares.tier1.cost * EXCHANGE_RATE)}）` : undefined} />

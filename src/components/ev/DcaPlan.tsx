@@ -106,7 +106,15 @@ export function DcaPlan({ store }: { store: ReturnType<typeof useEvStore> }) {
 
       {/* Panic Rules */}
       <div className="bg-card rounded-xl p-3 border border-border space-y-1.5">
-        <div className="text-xs font-mono text-loss">🔥 恐慌加码规则</div>
+        <div className="flex items-center gap-1.5">
+          <div className="text-xs font-mono text-loss">🔥 恐慌加码规则</div>
+          <span className="group relative">
+            <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-[10px] rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+              大盘跌幅 = 纳指从52周收盘高点回撤%
+            </span>
+          </span>
+        </div>
         {PANIC_RULES.map(r => (
           <div key={r.range} className="flex items-center justify-between text-[10px] font-mono">
             <span className="text-muted-foreground">{r.range}</span>
