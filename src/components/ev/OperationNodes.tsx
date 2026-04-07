@@ -215,7 +215,11 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-muted-foreground">近期高点</label>
+                    <label className="text-[10px] text-muted-foreground">52周收盘高点</label>
+                    <Input value={high52w} onChange={e => setHigh52w(e.target.value)} className="h-7 text-xs" placeholder="52周高点" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">近期高点（算节点）</label>
                     <Input value={recentHigh} onChange={e => setRecentHigh(e.target.value)} className="h-7 text-xs" placeholder="高点价格" />
                   </div>
                 </div>
