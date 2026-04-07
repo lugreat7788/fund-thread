@@ -277,6 +277,7 @@ export type Database = {
           buy_tier3_price: number | null
           created_at: string | null
           disposal_plan: string | null
+          high_52w: number | null
           id: string
           is_closed: boolean | null
           name: string
@@ -303,6 +304,7 @@ export type Database = {
           buy_tier3_price?: number | null
           created_at?: string | null
           disposal_plan?: string | null
+          high_52w?: number | null
           id?: string
           is_closed?: boolean | null
           name: string
@@ -329,6 +331,7 @@ export type Database = {
           buy_tier3_price?: number | null
           created_at?: string | null
           disposal_plan?: string | null
+          high_52w?: number | null
           id?: string
           is_closed?: boolean | null
           name?: string
