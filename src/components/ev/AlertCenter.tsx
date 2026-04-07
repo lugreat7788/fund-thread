@@ -139,8 +139,8 @@ function SentimentDashboard({ alert }: { alert: ReturnType<typeof useAlertStore>
         <div className="grid grid-cols-2 gap-3">
           {[
             { key: 'vix', label: 'VIX 恐慌指数', warn: values.vix > alert.settings.vixLevel2 },
-            { key: 'nasdaqDrop', label: '纳指跌幅 %', warn: values.nasdaqDrop > alert.settings.nasdaqDropTrigger },
-            { key: 'sp500Drop', label: '标普跌幅 %', warn: values.sp500Drop > 15 },
+            { key: 'nasdaqDrop', label: '纳指跌幅 %', warn: values.nasdaqDrop > alert.settings.nasdaqDropTrigger, hint: '基于纳指52周收盘高点回撤' },
+            { key: 'sp500Drop', label: '标普跌幅 %', warn: values.sp500Drop > 15, hint: '基于标普52周收盘高点回撤' },
             { key: 'fearGreed', label: '恐贪指数 (0-100)', warn: values.fearGreed < alert.settings.fearGreedTrigger },
           ].map(f => (
             <div key={f.key}>
