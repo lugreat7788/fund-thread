@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
-import { Plus } from 'lucide-react';
+import { Plus, Info } from 'lucide-react';
 import type { useEvStore } from '@/store/useEvStore';
 
 const PRIORITIES = [
