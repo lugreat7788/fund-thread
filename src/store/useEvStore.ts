@@ -156,44 +156,41 @@ export function useEvStore(user: User) {
         grouped[sym].totalCost += Number(t.buy_price) * Number(t.shares);
       });
 
-      // Get current ev_holdings
+      // Get current ev_holdings and deduplicate: keep oldest per symbol, delete rest
       const { data: existingHoldings } = await db('ev_holdings')
-        .select('*').eq('user_id', user.id).eq('is_closed', false);
+        .select('*').eq('user_id', user.id).eq('is_closed', false).order('created_at');
       const existing = (existingHoldings ?? []) as any[];
-      const existingBySymbol = new Map(existing.map(h => [h.symbol, h]));
+      
+      // Deduplicate: group by symbol, keep first (oldest), delete rest
+      const existingBySymbol = new Map<string, any>();
+      const duplicateIds: string[] = [];
+      for (const h of existing) {
+        if (existingBySymbol.has(h.symbol)) {
+          duplicateIds.push(h.id);
+        } else {
+          existingBySymbol.set(h.symbol, h);
+        }
+      }
+      // Delete duplicates
+      if (duplicateIds.length > 0) {
+        await db('ev_holdings').delete().in('id', duplicateIds);
+      }
 
       // Update existing or create new ev_holdings from trades
       for (const [symbol, pos] of Object.entries(grouped)) {
         const avgPrice = pos.totalShares > 0 ? +(pos.totalCost / pos.totalShares).toFixed(4) : 0;
         const ev = existingBySymbol.get(symbol);
         if (ev) {
-          // Only update shares/cost/avgPrice, keep EV metadata
-          if (Math.abs(ev.shares - pos.totalShares) > 0.001 || Math.abs(Number(ev.avg_price) - avgPrice) > 0.01) {
-            await db('ev_holdings').update({
-              shares: pos.totalShares, avg_price: avgPrice, total_cost: +pos.totalCost.toFixed(2),
-              name: pos.name, updated_at: new Date().toISOString(),
-            }).eq('id', ev.id);
-          }
+          await db('ev_holdings').update({
+            shares: pos.totalShares, avg_price: avgPrice, total_cost: +pos.totalCost.toFixed(2),
+            name: pos.name, updated_at: new Date().toISOString(),
+          }).eq('id', ev.id);
         } else {
-          // Create new ev_holding from trade
           await db('ev_holdings').insert({
             user_id: user.id, symbol, name: pos.name, asset_type: 'stock',
             shares: pos.totalShares, avg_price: avgPrice, total_cost: +pos.totalCost.toFixed(2),
             status: 'watch',
           });
-        }
-      }
-
-      // Mark ev_holdings as closed if no trades exist for them (unless manually created with shares)
-      for (const ev of existing) {
-        if (!grouped[ev.symbol]) {
-          // Check if this holding has 0 shares from trades - mark closed
-          const { data: tradesForSymbol } = await supabase.from('trades')
-            .select('id').eq('user_id', user.id).eq('symbol', ev.symbol).is('sell_date', null).limit(1);
-          if (!tradesForSymbol || tradesForSymbol.length === 0) {
-            // Only close if shares would be 0 from trades
-            // Keep manually initialized holdings that have no trades
-          }
         }
       }
 
