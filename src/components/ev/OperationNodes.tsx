@@ -117,6 +117,7 @@ function HoldingNodes({ holding, onSave, monthlyBudgetCny }: {
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [high52w, setHigh52w] = useState(holding.high52w?.toString() ?? holding.recentHigh?.toString() ?? '');
   const [recentHigh, setRecentHigh] = useState(holding.recentHigh?.toString() ?? '');
   const [s1, setS1] = useState(holding.sellTier1Price?.toString() ?? '');
   const [s2, setS2] = useState(holding.sellTier2Price?.toString() ?? '');
