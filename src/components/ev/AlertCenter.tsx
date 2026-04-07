@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Send, Plus, Trash2, Bell, Settings, Calendar, Activity, Check } from 'lucide-react';
+import { RefreshCw, Send, Plus, Trash2, Bell, Settings, Calendar, Activity, Check, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAlertStore, getSentimentLevel, requestNotificationPermission, type AlertSettings, type MarketSentiment, type EarningsEvent } from '@/store/useAlertStore';
 import type { useEvStore } from '@/store/useEvStore';
