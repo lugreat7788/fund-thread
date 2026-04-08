@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import emailjs from '@emailjs/browser';
 import type { EvHolding } from './useEvStore';
+import { safeStorage } from '@/lib/safe-storage';
 
 // --- Types ---
 export interface AlertSettings {
@@ -71,24 +72,24 @@ const LAST_CHECK_KEY = 'ev_last_alert_check';
 // --- Helpers ---
 export function loadSettings(): AlertSettings {
   try {
-    const s = localStorage.getItem(STORAGE_KEY);
+    const s = safeStorage.getItem(STORAGE_KEY);
     return s ? { ...DEFAULT_SETTINGS, ...JSON.parse(s) } : DEFAULT_SETTINGS;
   } catch { return DEFAULT_SETTINGS; }
 }
 
 export function saveSettings(s: AlertSettings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  safeStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
 
 export function loadSentiment(): MarketSentiment {
   try {
-    const s = localStorage.getItem(SENTIMENT_KEY);
+    const s = safeStorage.getItem(SENTIMENT_KEY);
     return s ? JSON.parse(s) : { vix: 0, nasdaqDrop: 0, sp500Drop: 0, fearGreed: 50, updatedAt: '' };
   } catch { return { vix: 0, nasdaqDrop: 0, sp500Drop: 0, fearGreed: 50, updatedAt: '' }; }
 }
 
 export function saveSentiment(s: MarketSentiment) {
-  localStorage.setItem(SENTIMENT_KEY, JSON.stringify(s));
+  safeStorage.setItem(SENTIMENT_KEY, JSON.stringify(s));
 }
 
 function isInSilentPeriod(settings: AlertSettings): boolean {
@@ -275,7 +276,7 @@ export async function runAlertCheck(
   }
 
   const checkedAt = now.toLocaleString('zh-CN');
-  localStorage.setItem(LAST_CHECK_KEY, checkedAt);
+  safeStorage.setItem(LAST_CHECK_KEY, checkedAt);
   return { alerts, checkedAt };
 }
 
@@ -286,7 +287,7 @@ export function useAlertStore(userId: string) {
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [earnings, setEarnings] = useState<EarningsEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastCheck, setLastCheck] = useState(localStorage.getItem(LAST_CHECK_KEY) || '');
+  const [lastCheck, setLastCheck] = useState(safeStorage.getItem(LAST_CHECK_KEY) || '');
   const [lastCheckCount, setLastCheckCount] = useState(0);
 
   const updateSettings = useCallback((s: AlertSettings) => {
