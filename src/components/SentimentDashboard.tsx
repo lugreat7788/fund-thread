@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, Activity, Edit2, Check, Clock, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { safeStorage } from '@/lib/safe-storage';
 
 interface QuoteItem {
   symbol: string;
@@ -41,12 +42,12 @@ const DEFAULT_SETTINGS: ManualSettings = { nasdaqATH: 540, sp500ATH: 610, cnnFea
 
 function loadSettings(): ManualSettings {
   try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
+    const raw = safeStorage.getItem(SETTINGS_KEY);
     return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
   } catch { return DEFAULT_SETTINGS; }
 }
 function saveSettings(s: ManualSettings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  safeStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
 }
 
 // ─── Sentiment levels ───

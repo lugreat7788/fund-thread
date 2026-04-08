@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { AppState, Trade, Identity, TradeEvent } from '@/types/trade';
+import { safeStorage } from '@/lib/safe-storage';
 
 const STORAGE_KEY = 'trade-journal-data';
 
@@ -12,14 +13,14 @@ const DEFAULT_IDENTITY: Identity = {
 
 const loadState = (): AppState => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
   return { identities: [DEFAULT_IDENTITY], trades: [], activeIdentityId: 'default' };
 };
 
 const saveState = (state: AppState) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 };
 
 export function useTradeStore() {

@@ -2,19 +2,20 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AppState, Trade, Identity, TradeEvent, TradeDirection, StrategyTag, EventType, ImpactLevel, Currency, MergedPosition } from '@/types/trade';
 import type { User } from '@supabase/supabase-js';
+import { safeStorage } from '@/lib/safe-storage';
 
 // ─── Cash reserve tracking via localStorage ───
 const CASH_KEY = 'ev-cash-reserve';
 
 export function getEvCash(): number {
   try {
-    const raw = localStorage.getItem(CASH_KEY);
+    const raw = safeStorage.getItem(CASH_KEY);
     return raw ? parseFloat(raw) || 0 : 0;
   } catch { return 0; }
 }
 
 export function setEvCash(amount: number) {
-  localStorage.setItem(CASH_KEY, amount.toFixed(2));
+  safeStorage.setItem(CASH_KEY, amount.toFixed(2));
 }
 
 export function addEvCash(amount: number) {
