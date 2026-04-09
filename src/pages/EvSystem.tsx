@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useEvStore } from '@/store/useEvStore';
+import { loadSentiment } from '@/store/useAlertStore';
 import { PortfolioDashboard } from '@/components/ev/PortfolioDashboard';
 import { OperationNodes } from '@/components/ev/OperationNodes';
 import { BuyDecisionFlow } from '@/components/ev/BuyDecisionFlow';
@@ -30,6 +31,10 @@ function EvDashboard({ user }: { user: User }) {
   const navigate = useNavigate();
   const store = useEvStore(user);
   const [tab, setTab] = useState<TabKey>('portfolio');
+  const sentiment = useMemo(() => {
+    const s = loadSentiment();
+    return { fearGreed: s.fearGreed, vix: s.vix };
+  }, []);
 
   if (store.loading) {
     return (
@@ -60,7 +65,7 @@ function EvDashboard({ user }: { user: User }) {
       <main className="flex-1 overflow-y-auto pb-20">
         <div className="max-w-5xl mx-auto px-3 py-4">
           {tab === 'portfolio' && <PortfolioDashboard store={store} />}
-          {tab === 'nodes' && <OperationNodes store={store} />}
+          {tab === 'nodes' && <OperationNodes store={store} sentiment={sentiment} />}
           {tab === 'buy' && <BuyDecisionFlow store={store} />}
           {tab === 'dca' && <DcaPlan store={store} />}
           {tab === 'review' && <MonthlyReview store={store} />}
