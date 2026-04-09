@@ -65,7 +65,7 @@ function EvDashboard({ user }: { user: User }) {
       <main className="flex-1 overflow-y-auto pb-20">
         <div className="max-w-5xl mx-auto px-3 py-4">
           {tab === 'portfolio' && <PortfolioDashboard store={store} />}
-          {tab === 'nodes' && <OperationNodes store={store} />}
+          {tab === 'nodes' && <OperationNodes store={store} sentiment={sentiment} />}
           {tab === 'buy' && <BuyDecisionFlow store={store} />}
           {tab === 'dca' && <DcaPlan store={store} />}
           {tab === 'review' && <MonthlyReview store={store} />}
