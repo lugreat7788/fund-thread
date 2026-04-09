@@ -31,6 +31,10 @@ function EvDashboard({ user }: { user: User }) {
   const navigate = useNavigate();
   const store = useEvStore(user);
   const [tab, setTab] = useState<TabKey>('portfolio');
+  const sentiment = useMemo(() => {
+    const s = loadSentiment();
+    return { fearGreed: s.fearGreed, vix: s.vix };
+  }, []);
 
   if (store.loading) {
     return (
