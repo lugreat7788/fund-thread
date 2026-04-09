@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, RotateCcw } from 'lucide-react';
+import { CheckCircle2, XCircle, ArrowRight, ArrowLeft, RotateCcw, AlertTriangle, ExternalLink, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { isLeveragedETF } from '@/lib/leveraged-etf';
 import type { useEvStore } from '@/store/useEvStore';
 
 const STEPS = ['准入审核', '跌幅档位', '基本面验证', '买入计划', 'EV估算', '确认执行'];
@@ -12,7 +14,11 @@ interface FlowState {
   symbol: string;
   // Step 1 - Admission
   profitable: boolean; moat: boolean; volume: boolean; marketCap: boolean;
-  vetoNoRev: boolean; vetoGov: boolean; vetoLev: boolean;
+  vetoNoRev: boolean; vetoGov: boolean;
+  // Leveraged ETF specific
+  isManualLeveraged: boolean;
+  levHasSellNodes: boolean; levPositionOk: boolean; levRebalanceOk: boolean;
+  levPositionLimit: string;
   // Step 2 - Tier
   tier: number; dropPct: number;
   // Step 3 - Fundamental
@@ -22,14 +28,21 @@ interface FlowState {
   sellP1: string; sellP2: string; sellP3: string;
   // Step 5 - EV
   winProb: string; gainPct: string; lossPct: string;
+  // First-time leveraged warning shown
+  levWarningShown: boolean;
 }
 
 const init = (): FlowState => ({
   symbol: '', profitable: false, moat: false, volume: false, marketCap: false,
-  vetoNoRev: false, vetoGov: false, vetoLev: false, tier: 1, dropPct: 0,
+  vetoNoRev: false, vetoGov: false,
+  isManualLeveraged: false,
+  levHasSellNodes: false, levPositionOk: false, levRebalanceOk: false,
+  levPositionLimit: '30',
+  tier: 1, dropPct: 0,
   earnings: false, growth: false, declineReason: 'macro', industry: false,
   amount: '', price: '', shares: '', sellP1: '', sellP2: '', sellP3: '',
   winProb: '60', gainPct: '30', lossPct: '15',
+  levWarningShown: false,
 });
 
 function CheckItem({ checked, onChange, label, veto }: { checked: boolean; onChange: (v: boolean) => void; label: string; veto?: boolean }) {
@@ -41,6 +54,24 @@ function CheckItem({ checked, onChange, label, veto }: { checked: boolean; onCha
   );
 }
 
+function LeveragedETFWarning({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-2">
+      <div className="flex items-center gap-2 text-amber-500 font-semibold text-sm">
+        <AlertTriangle className="w-4 h-4" />
+        杠杆ETF风险提示
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        杠杆ETF有<span className="text-foreground font-medium">波动率衰减</span>和<span className="text-foreground font-medium">路径依赖</span>风险，
+        长期持有可能导致收益远低于标的指数的倍数表现。系统要求强制配套减仓规则和仓位上限，不允许"裸持"杠杆ETF。
+      </p>
+      <Button size="sm" variant="outline" className="text-xs" onClick={onDismiss}>
+        我已了解风险
+      </Button>
+    </div>
+  );
+}
+
 export function BuyDecisionFlow({ store }: { store: ReturnType<typeof useEvStore> }) {
   const [step, setStep] = useState(0);
   const [f, setF] = useState<FlowState>(init());
@@ -48,7 +79,15 @@ export function BuyDecisionFlow({ store }: { store: ReturnType<typeof useEvStore
 
   const u = (k: Partial<FlowState>) => setF(prev => ({ ...prev, ...k }));
 
-  const admissionPass = f.profitable && f.moat && f.volume && f.marketCap && !f.vetoNoRev && !f.vetoGov && !f.vetoLev;
+  const symbolIsLeveraged = isLeveragedETF(f.symbol) || f.isManualLeveraged;
+  const leveragedPass = !symbolIsLeveraged || (f.levHasSellNodes && f.levPositionOk && f.levRebalanceOk);
+
+  // For leveraged ETFs, skip standard admission checks (profitable/moat not applicable)
+  const standardAdmissionPass = f.profitable && f.moat && f.volume && f.marketCap && !f.vetoNoRev && !f.vetoGov;
+  const admissionPass = symbolIsLeveraged
+    ? (f.volume && f.marketCap && !f.vetoNoRev && !f.vetoGov && leveragedPass)
+    : standardAdmissionPass;
+
   const fundamentalPass = f.earnings && f.growth && f.industry && f.declineReason === 'macro';
   const fundamentalDoubt = f.earnings && f.growth && f.industry && f.declineReason !== 'macro';
 
@@ -61,9 +100,10 @@ export function BuyDecisionFlow({ store }: { store: ReturnType<typeof useEvStore
     const holdingMatch = store.holdings.find(h => h.symbol.toLowerCase() === f.symbol.toLowerCase());
     await store.addDecision({
       holdingId: holdingMatch?.id, symbol: f.symbol.toUpperCase(),
-      admissionProfitable: f.profitable, admissionMoat: f.moat,
+      admissionProfitable: symbolIsLeveraged ? null as any : f.profitable,
+      admissionMoat: symbolIsLeveraged ? null as any : f.moat,
       admissionVolume: f.volume, admissionMarketCap: f.marketCap,
-      vetoNoRevenue: f.vetoNoRev, vetoGovContract: f.vetoGov, vetoLeveraged: f.vetoLev,
+      vetoNoRevenue: f.vetoNoRev, vetoGovContract: f.vetoGov, vetoLeveraged: false,
       admissionResult: admissionPass ? 'pass' : 'fail',
       currentTier: f.tier, dropPercent: f.dropPct,
       fundamentalEarnings: f.earnings, fundamentalGrowth: f.growth,
@@ -106,21 +146,88 @@ export function BuyDecisionFlow({ store }: { store: ReturnType<typeof useEvStore
         <div>
           <label className="text-xs text-muted-foreground">标的代码</label>
           <Input value={f.symbol} onChange={e => u({ symbol: e.target.value })} placeholder="如 AAPL" className="h-8 text-sm mt-1" />
+          {f.symbol && isLeveragedETF(f.symbol) && (
+            <div className="mt-1 text-[10px] text-amber-500 font-mono flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> 系统识别为杠杆ETF，将启用专项审核
+            </div>
+          )}
+          {f.symbol && !isLeveragedETF(f.symbol) && (
+            <label className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground cursor-pointer">
+              <Checkbox checked={f.isManualLeveraged} onCheckedChange={v => u({ isManualLeveraged: !!v })} />
+              手动标记为杠杆ETF
+            </label>
+          )}
         </div>
+      )}
+
+      {/* Leveraged ETF first-time warning */}
+      {step === 0 && symbolIsLeveraged && !f.levWarningShown && (
+        <LeveragedETFWarning onDismiss={() => u({ levWarningShown: true })} />
       )}
 
       {/* Step 1: Admission */}
       {step === 0 && (
         <div className="space-y-2">
+          {/* Standard checks - hide moat/profitable for leveraged ETFs */}
           <div className="text-xs font-mono text-primary">必须全部满足</div>
-          <CheckItem checked={f.profitable} onChange={v => u({ profitable: v })} label="公司已盈利，或1年内有清晰盈利路径" />
-          <CheckItem checked={f.moat} onChange={v => u({ moat: v })} label="有品牌/技术/规模护城河" />
+          {!symbolIsLeveraged && (
+            <>
+              <CheckItem checked={f.profitable} onChange={v => u({ profitable: v })} label="公司已盈利，或1年内有清晰盈利路径" />
+              <CheckItem checked={f.moat} onChange={v => u({ moat: v })} label="有品牌/技术/规模护城河" />
+            </>
+          )}
           <CheckItem checked={f.volume} onChange={v => u({ volume: v })} label="日均成交量 > 100万美元" />
           <CheckItem checked={f.marketCap} onChange={v => u({ marketCap: v })} label="市值 > 5亿美元" />
+
           <div className="text-xs font-mono text-loss mt-3">一票否决（勾选=存在该问题）</div>
           <CheckItem veto checked={f.vetoNoRev} onChange={v => u({ vetoNoRev: v })} label="无营收或营收持续萎缩" />
           <CheckItem veto checked={f.vetoGov} onChange={v => u({ vetoGov: v })} label="高度依赖单一政府合同" />
-          <CheckItem veto checked={f.vetoLev} onChange={v => u({ vetoLev: v })} label="杠杆ETF（无波段计划）" />
+
+          {/* Leveraged ETF specific review */}
+          {symbolIsLeveraged && (
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="text-xs font-mono text-amber-500">⚡ 杠杆ETF专用审核</div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px] text-xs">
+                      杠杆ETF有波动率衰减和路径依赖风险，必须配套风控规则才允许持有。
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="text-[10px] text-muted-foreground -mt-1">以下三条必须全部满足</div>
+              <CheckItem checked={f.levHasSellNodes} onChange={v => u({ levHasSellNodes: v })} label="已配套明确的减仓节点（至少3档减仓价位）" />
+              <CheckItem checked={f.levPositionOk} onChange={v => u({ levPositionOk: v })} label={`该标的仓位占总仓位比例不超过${f.levPositionLimit}%`} />
+              <div className="flex items-center gap-2 pl-3">
+                <span className="text-[10px] text-muted-foreground">仓位上限:</span>
+                <Input
+                  value={f.levPositionLimit}
+                  onChange={e => u({ levPositionLimit: e.target.value })}
+                  className="h-6 text-xs w-16"
+                  type="number"
+                />
+                <span className="text-[10px] text-muted-foreground">%</span>
+              </div>
+              <CheckItem checked={f.levRebalanceOk} onChange={v => u({ levRebalanceOk: v })} label="有最长持有期限或强制再平衡规则（默认每季度一次）" />
+
+              {!leveragedPass && (f.levHasSellNodes || f.levPositionOk || f.levRebalanceOk || (!f.levHasSellNodes && !f.levPositionOk && !f.levRebalanceOk)) && (
+                <div className="bg-loss/10 border border-loss/20 rounded-lg p-2.5 space-y-1.5">
+                  <div className="text-xs font-mono text-loss font-semibold">
+                    ❌ 不通过 - 杠杆ETF必须配套风险控制规则
+                  </div>
+                  <a href="/ev" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline cursor-pointer"
+                    onClick={(e) => { e.preventDefault(); /* Navigate to nodes tab */ }}>
+                    <ExternalLink className="w-3 h-3" /> 前往节点页配置减仓节点
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className={`text-sm font-mono font-bold mt-2 ${admissionPass ? 'text-profit' : 'text-loss'}`}>
             审核结果：{admissionPass ? '✅ 通过' : '❌ 不通过'}
           </div>
@@ -185,12 +292,14 @@ export function BuyDecisionFlow({ store }: { store: ReturnType<typeof useEvStore
           </div>
           <div className="text-xs font-mono text-profit">三步减仓价格（必填）</div>
           <div className="grid grid-cols-3 gap-2">
-            <div><label className="text-[10px] text-muted-foreground">+25%卖</label><Input value={f.sellP1} onChange={e => u({ sellP1: e.target.value })} className="h-7 text-xs mt-1" /></div>
-            <div><label className="text-[10px] text-muted-foreground">+50%卖</label><Input value={f.sellP2} onChange={e => u({ sellP2: e.target.value })} className="h-7 text-xs mt-1" /></div>
-            <div><label className="text-[10px] text-muted-foreground">+80%卖</label><Input value={f.sellP3} onChange={e => u({ sellP3: e.target.value })} className="h-7 text-xs mt-1" /></div>
+            <div><label className="text-[10px] text-muted-foreground">+40%卖</label><Input value={f.sellP1} onChange={e => u({ sellP1: e.target.value })} className="h-7 text-xs mt-1" /></div>
+            <div><label className="text-[10px] text-muted-foreground">+70%卖</label><Input value={f.sellP2} onChange={e => u({ sellP2: e.target.value })} className="h-7 text-xs mt-1" /></div>
+            <div><label className="text-[10px] text-muted-foreground">+100%卖</label><Input value={f.sellP3} onChange={e => u({ sellP3: e.target.value })} className="h-7 text-xs mt-1" /></div>
           </div>
           <div className="text-[10px] text-muted-foreground bg-secondary/30 rounded-lg p-2">
-            减仓策略：+25%卖20% → +50%再卖30% → +80%再卖30% → 底仓20%长期持有
+            减仓策略：+40%卖20% → +70%再卖30% → +100%再卖30% → 底仓20%长期持有
+            <br />
+            <span className="text-amber-500">注：减仓价基于近12个月最低收盘价反弹计算，需同时满足市场温度条件才触发</span>
           </div>
         </div>
       )}
@@ -221,7 +330,7 @@ export function BuyDecisionFlow({ store }: { store: ReturnType<typeof useEvStore
         <div className="space-y-3">
           <div className="text-xs font-mono text-primary">决策摘要</div>
           <div className="bg-card border border-border rounded-xl p-3 space-y-1.5 text-xs font-mono">
-            <div className="flex justify-between"><span className="text-muted-foreground">标的</span><span>{f.symbol.toUpperCase()}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">标的</span><span>{f.symbol.toUpperCase()} {symbolIsLeveraged && <span className="text-amber-500">⚡杠杆</span>}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">准入</span><span className={admissionPass ? 'text-profit' : 'text-loss'}>{admissionPass ? '通过' : '不通过'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">档位</span><span>第{f.tier}档 ({f.dropPct}%)</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">基本面</span><span className={fundamentalPass ? 'text-profit' : 'text-yellow-400'}>{fundamentalPass ? '通过' : '存疑'}</span></div>
