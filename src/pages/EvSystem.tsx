@@ -75,6 +75,8 @@ function EvDashboard({ user }: { user: User }) {
           {tab === 'review' && <MonthlyReview store={store} />}
           {tab === 'errors' && <ErrorLog store={store} />}
           {tab === 'alerts' && <AlertCenter store={store} />}
+          {tab === 'rulelog' && <RuleChangeLog />}
+          {tab === 'playbook' && <Playbook />}
         </div>
       </main>
 
