@@ -11,8 +11,10 @@ import { MonthlyReview } from '@/components/ev/MonthlyReview';
 import { ErrorLog } from '@/components/ev/ErrorLog';
 import { AuthPage } from '@/components/AuthPage';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, Briefcase, Target, ShoppingCart, Wallet, FileText, AlertTriangle, Bell } from 'lucide-react';
+import { Loader2, ArrowLeft, Briefcase, Target, ShoppingCart, Wallet, FileText, AlertTriangle, Bell, ScrollText, BookOpen } from 'lucide-react';
 import { AlertCenter } from '@/components/ev/AlertCenter';
+import { RuleChangeLog } from '@/components/ev/RuleChangeLog';
+import { Playbook } from '@/components/ev/Playbook';
 import type { User } from '@supabase/supabase-js';
 
 const TABS = [
@@ -23,6 +25,8 @@ const TABS = [
   { key: 'review', label: '复盘', icon: FileText },
   { key: 'errors', label: '错误', icon: AlertTriangle },
   { key: 'alerts', label: '提醒', icon: Bell },
+  { key: 'rulelog', label: '变更', icon: ScrollText },
+  { key: 'playbook', label: '预案', icon: BookOpen },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -71,6 +75,8 @@ function EvDashboard({ user }: { user: User }) {
           {tab === 'review' && <MonthlyReview store={store} />}
           {tab === 'errors' && <ErrorLog store={store} />}
           {tab === 'alerts' && <AlertCenter store={store} />}
+          {tab === 'rulelog' && <RuleChangeLog />}
+          {tab === 'playbook' && <Playbook />}
         </div>
       </main>
 
