@@ -388,6 +388,72 @@ export type Database = {
         }
         Relationships: []
       }
+      ev_playbooks: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          is_custom: boolean
+          scenario_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          is_custom?: boolean
+          scenario_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          is_custom?: boolean
+          scenario_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ev_rule_changes: {
+        Row: {
+          context: string
+          created_at: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          reason: string
+          rule_name: string
+          user_id: string
+        }
+        Insert: {
+          context?: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason: string
+          rule_name: string
+          user_id: string
+        }
+        Update: {
+          context?: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string
+          rule_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       identities: {
         Row: {
           color: string
