@@ -359,6 +359,7 @@ export type Database = {
           id: string
           month: string
           next_month_plan: string | null
+          review_data: Json | null
           user_id: string
           violations: string | null
           watchlist: string | null
@@ -369,6 +370,7 @@ export type Database = {
           id?: string
           month: string
           next_month_plan?: string | null
+          review_data?: Json | null
           user_id: string
           violations?: string | null
           watchlist?: string | null
@@ -379,6 +381,7 @@ export type Database = {
           id?: string
           month?: string
           next_month_plan?: string | null
+          review_data?: Json | null
           user_id?: string
           violations?: string | null
           watchlist?: string | null
